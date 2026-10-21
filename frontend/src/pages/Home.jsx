@@ -9,7 +9,7 @@ function Home() {
         <Badge tone="teal">FOR CAMPUSES & THEIR COMMUNITIES</Badge>
         <h1>Your safety.<br /><span>A shared responsibility.</span></h1>
         <p>A thoughtful space for trusted contacts, verified community volunteers, and permission-based emergency support.</p>
-        <div className="hero-actions"><Link className="button button-primary" to="/register">Explore account setup <Icon name="arrow" size={17} /></Link><Link className="text-link" to="/login">Already have an account?</Link></div>
+        <div className="hero-actions"><Link className="button button-primary" to="/register">Create account <Icon name="arrow" size={17} /></Link><Link className="text-link" to="/login">Already have an account?</Link></div>
         <p className="hero-footnote"><Icon name="lock" size={15} /> Your location should always have a clear purpose and a clear end.</p>
       </div>
       <Card className="home-flow-card">
@@ -28,7 +28,7 @@ function Home() {
       <div><Icon name="lock" /><h2>Consent comes first.</h2><p>Contacts must consent to alerts. Exact locations are never intended for public access.</p></div>
       <div><Icon name="phone" /><h2>112 stays within reach.</h2><p>This college prototype cannot guarantee assistance or message delivery. For an emergency in India, call 112.</p></div>
     </div>
-    <div className="preview-banner"><Icon name="info" /><p><strong>Phase 2 development preview.</strong> Login and registration screens are available for form checks. Accounts, authentication, and volunteer approvals are not connected yet.</p></div>
+    <div className="preview-banner"><Icon name="info" /><p><strong>Phase 2 development.</strong> Registration is connected to the backend. Sign-in, role dashboards, and volunteer approvals are still being built. Emergency features remain unavailable.</p></div>
   </div>;
 }
 

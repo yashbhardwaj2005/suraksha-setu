@@ -53,8 +53,11 @@
 .role-option input { accent-color: #216d54; }
 .role-option:focus-within { outline: 2px solid #2d8c70; outline-offset: 2px; }
 .auth-submit { width: 100%; margin-top: 5px; }
+.auth-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.auth-fields:disabled { opacity: .7; }
 .form-feedback { margin-top: 13px; }
 .form-feedback p { font-size: .75rem; color: #375e4e; }
+.form-feedback-error p { color: #a32d36; }
 .auth-switch { padding-top: 19px; margin-top: 21px; border-top: 1px solid #e4ebe7; font-size: .75rem; text-align: center; }
 .auth-switch a { color: #28634e; font-weight: 650; text-decoration: underline; margin-left: 4px; }
 .auth-emergency-note { text-align: center; margin: 29px auto 0; font-size: .72rem; max-width: 620px; }

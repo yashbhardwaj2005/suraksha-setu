@@ -14,13 +14,13 @@ const phases = [
 
 function Workspace() {
   return <div className="page-content">
-    <PageIntro eyebrow="AUTHENTICATION / PHASE 02" title="Know your community.">The User model is reviewed. Next comes registration, followed by sign-in, roles and volunteer verification.</PageIntro>
+    <PageIntro eyebrow="AUTHENTICATION / PHASE 02" title="Know your community.">The User model and registration are verified. Next come sign-in, protected routes and volunteer verification.</PageIntro>
     <div className="overview-grid">
       <Card className="feature-card">
         <div className="feature-top"><Badge tone="light">CURRENT MILESTONE</Badge><Icon name="layers" size={25} /></div>
         <h2>Give every account<br />a clear role.</h2>
-        <p>The model now validates account fields and protects password hashes. Build registration next, with explicit input checks and password hashing.</p>
-        <Link className="button button-white" to="/setup">Open registration task <Icon name="arrow" size={17} /></Link>
+        <p>Registration now validates requests, hashes passwords and handles duplicate email safely. Review the flow, then continue with sign-in and sessions.</p>
+        <Link className="button button-white" to="/setup">Review registration <Icon name="arrow" size={17} /></Link>
         <div className="feature-footer"><span className="feature-line" /> Phase 2 of 6 <span>Authentication & verification</span></div>
       </Card>
       <HealthCard />

@@ -29,8 +29,10 @@ const startupHarness = `
     import assert from "node:assert/strict";
     import mongoose from "mongoose";
     import app from "./src/app.js";
+    import User from "./src/models/user.model.js";
 
     let connected = false;
+    let indexesReady = false;
     mongoose.connect = async (uri, options) => {
         assert.equal(uri, process.env.MONGODB_URI);
         assert.equal(options.serverSelectionTimeoutMS, 5000);
@@ -41,8 +43,17 @@ const startupHarness = `
         connected = true;
         console.log("TEST_DATABASE_READY");
     };
+    User.init = async () => {
+        assert.equal(connected, true);
+        if (process.env.TEST_INDEX_FAILURE === "true") {
+            throw new Error("private-index-details-DO-NOT-LOG");
+        }
+        indexesReady = true;
+        console.log("TEST_INDEXES_READY");
+    };
     app.listen = (port, onListening) => {
         assert.equal(connected, true, "HTTP must wait for MongoDB");
+        assert.equal(indexesReady, true, "HTTP must wait for the unique email index");
         assert.equal(port, 5000);
         console.log("TEST_LISTENER_STARTED");
         onListening();
@@ -65,6 +76,8 @@ test("startup waits for the asynchronous database connection", () => {
     const ready = result.stdout.indexOf("TEST_DATABASE_READY");
     const listening = result.stdout.indexOf("TEST_LISTENER_STARTED");
     assert.ok(ready !== -1 && listening > ready);
+    const indexed = result.stdout.indexOf("TEST_INDEXES_READY");
+    assert.ok(indexed > ready && listening > indexed);
 });
 
 test("database failure exits nonzero, never listens, and hides raw errors", () => {
@@ -76,6 +89,16 @@ test("database failure exits nonzero, never listens, and hides raw errors", () =
     assert.match(result.stderr, /Unable to start server/);
     assert.ok(!(result.stdout + result.stderr).includes("private-driver-detail"));
     assert.ok(!(result.stdout + result.stderr).includes(testUri));
+});
+
+test("index failure prevents listening and does not reveal index internals", () => {
+    const result = runNode(["--input-type=module", "-e", startupHarness], {
+        TEST_DB_FAILURE: "false", TEST_INDEX_FAILURE: "true", TEST_LISTENER_FAILURE: "false",
+    });
+    assert.equal(result.status, 1);
+    assert.ok(!result.stdout.includes("TEST_LISTENER_STARTED"));
+    assert.match(result.stderr, /Unable to start server/);
+    assert.ok(!(result.stdout + result.stderr).includes("private-index-details"));
 });
 
 test("HTTP listener failure exits with a sanitized message", () => {

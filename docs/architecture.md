@@ -1,7 +1,7 @@
 # Architecture proposal — Phase 1
 
-Status: Phase 1 foundation implemented; Phase 2 approved and started. Future
-models/authentication remain proposed until student implementation and review.
+Status: Phase 1 foundation, Phase 2 User model and public registration are
+implemented. Login/session authentication and future models remain proposed.
 Date: 2026-10-21.
 This document covers future phases for discussion, not authorization to
 implement them now. Follow the ownership and phase rules in `../AGENTS.md`.
@@ -120,7 +120,7 @@ frontend/
     main.jsx
   public/
   package.json
-backend/          # student-created; no files written by Codex yet
+backend/          # student work plus explicitly delegated/reviewed Codex changes
   src/
     controllers/  # request/response handlers
     models/       # Mongoose schemas
@@ -281,7 +281,7 @@ protected routes, real account creation and volunteer approval are not built.
 References: https://mongoosejs.com/docs/validation.html and
 https://github.com/kelektiv/node.bcrypt.js#security-issues-and-concerns.
 
-### User model review and next registration boundary
+### User model review (before registration)
 
 Student submitted backend/src/models/user.model.js; Codex corrected it with
 explicit authorization. This lowercase dotted filename is retained for their
@@ -298,6 +298,61 @@ actual unique-index enforcement is deferred to isolated registration tests.
 Next student task: registration with bcrypt, explicit input/role allowlisting,
 server-controlled status fields and safe 201/400/409 responses. No JWT/session
 issuance or frontend auth activation is part of that assignment.
+
+## Implemented Phase 2 registration
+
+The student explicitly delegated registration after attempting the controller.
+This section supersedes the kickoff preview/registration-pending notes above.
+The model remains backend/src/models/user.model.js. New dependencies are
+bcrypt (password hashing) and express-rate-limit (request throttling).
+JWT/cookie-parser are not installed for this task; HTTP tests use node:test
+and real loopback HTTP rather than requiring supertest.
+
+Request flow: 16 KB JSON parser -> /api/v1/auth router -> registrationGuard
+-> registrationLimiter -> register controller -> User model/MongoDB -> safe
+201 receipt. Errors use the existing central handler. Exports stay at module
+ends; simple named functions and ordinary if statements keep the flow readable.
+
+The controller accepts only name/email/password/optional role, validates before
+DB/hash work, trims name, lowercases/normalizes email, and preserves password
+spaces. Password policy is 12 characters minimum and 72 UTF-8 bytes maximum.
+It hashes once with bcrypt cost 12; the model has no pre-save hashing hook.
+Only explicit fields reach User.create. Public role is USER or VOLUNTEER;
+protected status/version/hash input and ADMIN are rejected. New volunteers
+remain NOT_REQUESTED. Responses return only id/name/email/role/accountStatus/
+verificationStatus. No cookies, sessions or approval are issued.
+
+db.js now awaits User.init after connecting and before the listener starts.
+The unique email index handles races; both the preliminary duplicate lookup
+and duplicate-key catch return controlled 409 responses. Failed index readiness
+prevents startup. Real concurrent-signup tests prove one account is persisted.
+
+The guard requires application/json and checks an exact Origin against optional
+FRONTEND_ORIGIN (default http://127.0.0.1:5173). Origin-less CLI requests are
+allowed unless Fetch Metadata says cross-site. A process-local limiter allows
+10 attempts per IP in 15 minutes. Shared storage/trusted proxy settings need
+deployment review. Session-bound CSRF for upcoming login/logout/authenticated
+mutations is still required; registration neither reads nor creates sessions.
+
+Frontend /register uses the real Axios service with explicit request fields,
+loading/abort handling and safe error feedback. It confirms creation only from
+a validated 201 response and clears passwords on success. Network timeouts are
+shown as unconfirmed because creation may have completed. /login remains a
+local preview. No session state or bearer token is fabricated or persisted.
+
+Verification: 52 offline backend tests, 14 frontend tests, production build,
+and 5 isolated real Atlas integration checks pass. Live tests verify persisted
+bcrypt hashes, hidden default hash queries, unique index/races, unapproved
+volunteers and actual frontend Axios roundtrips. They use a generated temporary
+database, assert its exact identity before cleanup, remove only its users
+collection, then close HTTP/database connections. Browser/mobile interaction
+and visual QA remain pending.
+
+The controller and current-project model's unsaved VS Code buffers were synced
+with tested source after the user unlocked Windows. A duplicate model hash hook
+was removed. Saved disk equality and no unsaved-file markers were verified.
+Login/JWT sessions, logout, protected dashboards and volunteer approval are
+the next guided Phase 2 tasks; Phase 3 has not been approved.
 
 ## Official references checked during planning
 

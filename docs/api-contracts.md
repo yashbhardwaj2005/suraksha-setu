@@ -1,8 +1,8 @@
-# Proposed API contracts
+# API contracts: implemented and proposed
 
-Status: Phase 2 approved. Authentication contracts remain proposed; only
-Phase 1 health/error endpoints are implemented. Phase 2 form previews perform
-client validation without sending credentials or claiming real authentication.
+Status: Phase 2 in progress. Health/error handling and public registration are
+implemented. The registration form calls the real API; login is a local preview.
+Cookie sessions, logout, protected endpoints and future-phase APIs remain proposed.
 Frontend health client and student-written /api/v1/health endpoint implemented.
 The initial route mismatch was corrected by the student. Direct HTTP and
 actual Axios through Vite proxy now pass with HTTP 200 and agreed JSON fields.
@@ -41,39 +41,58 @@ there are no public debug/error-generation endpoints.
 
 ## Shared conventions
 
-### Phase 2 User model and planned account inputs
+### Implemented Phase 2 User model and registration
 
 User model implemented at models/user.model.js and reviewed/tested. Fields: name, email,
 passwordHash (select:false), role, accountStatus, verificationStatus,
 authVersion and timestamps. Safe user summaries must omit passwordHash and
 internal session fields. select:false protects default reads and a toJSON
 transform additionally removes passwordHash; lean/raw data still needs the
-controller whitelist. Model tests validate index declaration, not live duplicate
-insertion/enforcement. Registration is the next student assignment.
+controller whitelist. Offline model tests and isolated real Atlas registration
+tests verify defaults, redaction and actual unique-index enforcement.
 
-Proposed registration body: name, email, password, role (USER or VOLUNTEER).
+`POST /api/v1/auth/register` accepts name, email, password and optional role
+(USER or VOLUNTEER, default USER).
 Password confirmation is client-only and is not stored. Backend normalizes
 email/name, validates input, hashes passwords and sets all status/version
 defaults. Reject attempts to set ADMIN, passwordHash, approval/account status
 or authVersion. No arbitrary req.body spread into a User document.
 
-Proposed password policy: registration minimum 12 characters, maximum 72
-UTF-8 bytes for bcrypt; never trim passwords. Backend enforcement is mandatory
-before enabling the frontend submit request. Handle duplicate-index errors as
-409; unique schema options are not validation or an authorization mechanism.
+Enforced password policy: minimum 12 characters, maximum 72 UTF-8 bytes;
+passwords are never trimmed. bcrypt uses cost 12. Startup waits for User.init
+before listening so the unique email index is ready. Duplicate-index failures
+return 409, including concurrent signup; a precheck alone is insufficient.
 
-Registration assignment returns 201 and a safe user summary without automatically
-claiming a logged-in session. Login/session responses and CSRF token structure
-must be finalized before integration. No auth route exists yet; previews do
-not call the current backend's 404 endpoints with entered credentials.
+Registration returns 201 and a safe user receipt without a cookie or logged-in
+session. Login/session responses and CSRF token structure must be finalized
+before their implementation. The login preview does not submit credentials.
 
-Registration response proposal: { success:true, data:{ user:{ id,name,email,
+Registration response: { success:true, data:{ user:{ id,name,email,
 role,accountStatus,verificationStatus } } }. Invalid input is 400 with code
 VALIDATION_ERROR; duplicate normalized email is 409 with code EMAIL_EXISTS,
 including concurrent database duplicate-key failures. Reject extra/protected
 fields and non-string input before normalization, queries or bcrypt. This
-public endpoint does not consume or create a logged-in session. Complete
-Origin/rate-limit/CSRF policy for account flows before frontend activation.
+public endpoint does not consume or create a logged-in session. New accounts
+are ACTIVE with verificationStatus NOT_REQUESTED and authVersion 0; those
+fields cannot be supplied by clients. Volunteer registration does not approve
+the volunteer or grant access to protected responder features.
+
+Registration request guards:
+
+- Content-Type must be application/json; otherwise 415 JSON_REQUIRED. Shared
+  parsing errors and 16 KB body limits apply before the route.
+- If Origin is present, it must exactly equal FRONTEND_ORIGIN (default
+  http://127.0.0.1:5173). Mismatches return 403 ORIGIN_NOT_ALLOWED. An absent
+  Origin is permitted for CLI clients unless Sec-Fetch-Site is cross-site.
+- 10 attempts per IP per 15 minutes, then 429 RATE_LIMITED. The limiter uses
+  process-local memory; deployment must review shared storage and trusted proxy
+  settings before relying on it across replicas or a reverse proxy.
+- No account session is read or issued here. Session-bound CSRF protection for
+  login/logout and authenticated mutations remains upcoming Phase 2 work.
+
+The frontend sends only allowed fields, validates the exact success receipt,
+and maps failures to safe messages. Timeouts/network failures are unconfirmed
+outcomes: an account might have been created. No automatic POST retry occurs.
 
 - JSON request/response bodies, except bodyless responses. Success:
   `{ "success": true, "data": ... }`. Failure:
@@ -122,6 +141,10 @@ Origin/rate-limit/CSRF policy for account flows before frontend activation.
 | 5 | GET /volunteers/me/alerts | Current eligible nearby open requests on reconnect; approximate distances only |
 | 5 | PATCH /sos/:sosId/accept | Eligible candidate, atomic assignment; 409 if already taken/ended |
 | 5 | PATCH /sos/:sosId/status | Assigned eligible volunteer; RESPONDING or RESOLVED only |
+
+Only GET /health and POST /auth/register in this table are implemented.
+Registration tests: 52 offline backend checks and 5 isolated Atlas integration
+checks pass, including the real frontend Axios creation/duplicate roundtrip.
 
 No public exact-location endpoint. Contact invitation delivery and consent
 proof need a separate guided design before Phase 3; the mock simulates the

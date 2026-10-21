@@ -1,5 +1,26 @@
 # Project development rules
 
+## SurakshaSetu workflow preferences (2026-10-21)
+
+- Use direct filesystem/editing tools. Do not use Computer Use, screenshots,
+  mouse/keyboard automation or the VS Code graphical interface for routine
+  coding. Computer Use requires an explicit user request; do not switch to it
+  automatically if direct editing is unavailable.
+- Never overwrite known unsaved editor changes. Ask the student to save or
+  discard them first. This supersedes the earlier editor-buffer sync workflow.
+- Reuse conversation context. Read only files relevant to the requested task;
+  avoid repeated project scans and documentation reads unless required.
+- Make minimal changes in the existing structure. No unrelated refactoring,
+  unrequested features, unnecessary files or documentation.
+- Use basic syntax checks when useful for simple edits and focused tests for
+  complex/security-sensitive changes. Run comprehensive tests only on request
+  or when necessary to avoid a serious regression; avoid repeated commands.
+- Keep responses extremely short: modified files, concrete changes and relevant
+  errors or verification limits. Explain further only when asked.
+- Preserve the student-first backend workflow and explicit delegations below.
+  These preferences apply unless higher-priority instructions or essential
+  security requirements conflict.
+
 ## Purpose and ownership
 
 This is a learning-focused MERN college project: Community-Driven Women Safety.
@@ -57,6 +78,15 @@ errorHandler, JSON parsing, app wiring and relevant tests. Use simple named
 functions and straightforward if statements; avoid unnecessary classes,
 helpers or advanced syntax. Explain briefly after verifying the result.
 Future feature business logic still follows the student-first workflow.
+
+### Explicit exception for Phase 2 registration
+
+After creating empty controller/route files, the student explicitly requested
+Codex to implement this registration task. Implement its validation, bcrypt
+hashing, safe response, duplicate handling, route wiring, basic Origin/JSON
+guard and throttling, and relevant tests. Frontend registration may be wired
+to the real reviewed endpoint. Keep simple functions and exports at the end.
+This does not authorize login/JWT/volunteer business logic in advance.
 
 When a student reports edits are missing in VS Code, distinguish saved disk
 contents from dirty editor buffers. Do not repeat a line-number claim based

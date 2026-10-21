@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node --env-file=.env src/index.js",
     "dev": "node --env-file=.env --watch src/index.js",
-    "test": "node --test tests/startup.test.js tests/error-handling.test.js tests/user-model.test.js"
+    "test": "node --test tests/startup.test.js tests/error-handling.test.js tests/user-model.test.js tests/registration.test.js",
+    "test:integration": "node --env-file=.env --test tests/registration.integration.js"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +15,9 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
     "mongoose": "^9.11.2"
   }
 }

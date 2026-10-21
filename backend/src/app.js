@@ -1,10 +1,12 @@
 import express from "express";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
+import authRouter from "./routes/auth.routes.js";
 
 const app = express();
 
 app.use(express.json({ limit: "16kb" }));
+app.use("/api/v1/auth", authRouter);
 
 // Health Check API :-
 
