@@ -1,0 +1,48 @@
+                  FRONTEND (React)
+                         |
+                         | POST /api/v1/auth/register
+                         |
+                         ▼
+                 BACKEND (Express)
+                         |
+                         ▼
+                1. ROUTE (auth.routes.js)
+                   Receives request
+                         |
+                         ▼
+                2. CONTROLLER (auth.controller.js)
+                   Reads name, email,
+                   password, role
+                         |
+                         ▼
+                3. VALIDATION
+                   Are inputs valid?
+                         |
+                  ┌──────┴──────┐
+                  |             |
+                 NO            YES
+                  |             |
+                  ▼             ▼
+             400 Error     4. CHECK EMAIL
+                                |
+                         Already exists?
+                          /          \
+                        YES           NO
+                         |             |
+                         ▼             ▼
+                    409 Error     5. HASH PASSWORD
+                                      |
+                                      ▼
+                              bcrypt.hash(password, 12)
+                                      |
+                                      ▼
+                               6. CREATE USER
+                                      |
+                                      ▼
+                              MongoDB Database
+                                      |
+                                      ▼
+                              7. SAFE RESPONSE
+                                      |
+                                      ▼
+                                201 Created

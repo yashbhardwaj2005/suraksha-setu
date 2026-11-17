@@ -1,91 +1,106 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { sessionSecret } from "../config/session.js";
 
-function sendValidationError(res, message) {
-    return res.status(400).json({
-        success: false,
-        error: { code: "VALIDATION_ERROR", message: message },
-    });
+function sendError(res, statusCode, code, message) {
+    return res.status(statusCode).json({ success: false, error: { code: code, message: message } });
+}
+
+function getSafeUser(user) {
+    return { id: user._id.toString(), name: user.name, email: user.email, role: user.role, accountStatus: user.accountStatus, verificationStatus: user.verificationStatus };
+}
+
+function createSession(res, user) {
+    const token = jwt.sign({ sub: user._id.toString(), version: user.authVersion }, sessionSecret, { expiresIn: "8h" });
+    res.cookie("suraksha_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 8 * 60 * 60 * 1000, path: "/" });
 }
 
 async function register(req, res, next) {
     try {
-        if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
-            return sendValidationError(res, "Request body must be a JSON object");
-        }
-
+        if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return sendError(res, 400, "VALIDATION_ERROR", "Request body must be a JSON object");
         const allowedFields = ["name", "email", "password", "role"];
         for (const field of Object.keys(req.body)) {
-            if (!allowedFields.includes(field)) {
-                return sendValidationError(res, "Only name, email, password and role are accepted");
-            }
+            if (!allowedFields.includes(field)) return sendError(res, 400, "VALIDATION_ERROR", "Only name, email, password and role are accepted");
         }
-
-        if (typeof req.body.name !== "string" || typeof req.body.email !== "string" || typeof req.body.password !== "string") {
-            return sendValidationError(res, "Name, email and password must be strings");
+        const { name, email, password } = req.body;
+        const role = req.body.role === undefined ? "USER" : req.body.role;
+        if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") return sendError(res, 400, "VALIDATION_ERROR", "Name, email and password must be strings");
+        const normalizedName = name.trim();
+        const normalizedEmail = email.trim().toLowerCase();
+        if (normalizedName.length < 2 || normalizedName.length > 80 || normalizedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || password.length < 12 || Buffer.byteLength(password, "utf8") > 72 || !["USER", "VOLUNTEER"].includes(role)) {
+            return sendError(res, 400, "VALIDATION_ERROR", "Registration details are invalid");
         }
-
-        const name = req.body.name.trim();
-        const email = req.body.email.trim().toLowerCase();
-        const password = req.body.password;
-        let role = "USER";
-        if (req.body.role !== undefined) role = req.body.role;
-
-        if (name.length < 2 || name.length > 80) {
-            return sendValidationError(res, "Name must be between 2 and 80 characters");
-        }
-        if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return sendValidationError(res, "Enter a valid email address");
-        }
-        if (password.length < 12 || Buffer.byteLength(password, "utf8") > 72) {
-            return sendValidationError(res, "Password must have at least 12 characters and no more than 72 UTF-8 bytes");
-        }
-        if (role !== "USER" && role !== "VOLUNTEER") {
-            return sendValidationError(res, "Public registration allows only USER or VOLUNTEER");
-        }
-
-        const existingUser = await User.exists({ email: email });
-        if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                error: { code: "EMAIL_EXISTS", message: "An account with this email already exists" },
-            });
-        }
-
-        const passwordHash = await bcrypt.hash(password, 12);
-        const user = await User.create({
-            name: name,
-            email: email,
-            passwordHash: passwordHash,
-            role: role,
-        });
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                user: {
-                    id: user._id.toString(),
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    accountStatus: user.accountStatus,
-                    verificationStatus: user.verificationStatus,
-                },
-            },
-        });
+        if (await User.exists({ email: normalizedEmail })) return sendError(res, 409, "EMAIL_EXISTS", "An account with this email already exists");
+        const user = await User.create({ name: normalizedName, email: normalizedEmail, passwordHash: await bcrypt.hash(password, 12), role: role });
+        return res.status(201).json({ success: true, data: { user: getSafeUser(user) } });
     } catch (error) {
-        // The unique database index also protects simultaneous signups.
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                error: { code: "EMAIL_EXISTS", message: "An account with this email already exists" },
-            });
-        }
-        if (error.name === "ValidationError") {
-            return sendValidationError(res, "Registration details are invalid");
-        }
+        if (error.code === 11000) return sendError(res, 409, "EMAIL_EXISTS", "An account with this email already exists");
+        if (error.name === "ValidationError") return sendError(res, 400, "VALIDATION_ERROR", "Registration details are invalid");
         return next(error);
     }
 }
 
-export { register };
+async function login(req, res, next) {
+    try {
+        const { email, password } = req.body || {};
+        if (typeof email !== "string" || !email.trim() || typeof password !== "string" || !password) return sendError(res, 400, "VALIDATION_ERROR", "Email and password are required");
+        const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+passwordHash");
+        if (!user || user.accountStatus !== "ACTIVE" || !(await bcrypt.compare(password, user.passwordHash))) return sendError(res, 401, "INVALID_CREDENTIALS", "Email or password is incorrect");
+        createSession(res, user);
+        return res.status(200).json({ success: true, data: { user: getSafeUser(user) } });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+function me(req, res) {
+    return res.status(200).json({ success: true, data: { user: getSafeUser(req.user) } });
+}
+
+async function logout(req, res, next) {
+    try {
+        await User.updateOne({ _id: req.user._id }, { $inc: { authVersion: 1 } });
+        res.clearCookie("suraksha_session", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+        return res.status(204).send();
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function requestVolunteerVerification(req, res, next) {
+    try {
+        if (req.user.role !== "VOLUNTEER") return sendError(res, 403, "FORBIDDEN", "Only volunteers can request verification");
+        if (!["NOT_REQUESTED", "REJECTED"].includes(req.user.verificationStatus)) return sendError(res, 409, "VERIFICATION_EXISTS", "A verification request is already being reviewed");
+        req.user.verificationStatus = "PENDING";
+        await req.user.save();
+        return res.status(200).json({ success: true, data: { user: getSafeUser(req.user) } });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function listVolunteerApplications(req, res, next) {
+    try {
+        const users = await User.find({ role: "VOLUNTEER", verificationStatus: "PENDING" });
+        return res.status(200).json({ success: true, data: { users: users.map(getSafeUser) } });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function reviewVolunteer(req, res, next) {
+    try {
+        const status = req.body?.verificationStatus;
+        if (!["APPROVED", "REJECTED"].includes(status)) return sendError(res, 400, "VALIDATION_ERROR", "Choose APPROVED or REJECTED");
+        const user = await User.findOne({ _id: req.params.userId, role: "VOLUNTEER" });
+        if (!user) return sendError(res, 404, "NOT_FOUND", "Volunteer was not found");
+        user.verificationStatus = status;
+        await user.save();
+        return res.status(200).json({ success: true, data: { user: getSafeUser(user) } });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+export { register, login, me, logout, requestVolunteerVerification, listVolunteerApplications, reviewVolunteer };

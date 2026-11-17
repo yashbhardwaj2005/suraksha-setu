@@ -67,6 +67,12 @@ main { flex: 1; }
 .button-white:hover { background: #eaf5ef; }
 .button-secondary { background: white; color: #285d52; border-color: #cdded5; }
 .button-secondary:hover { background: #f0f7f3; }
+.dashboard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.dashboard-actions .button { margin: 0; }
+.overview-grid .card form { display: grid; gap: 10px; }
+.overview-grid .card input { border: 1px solid #cdded5; border-radius: 7px; min-height: 44px; padding: 10px; font: inherit; }
+.contact-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 11px; font-size: .83rem; }
+.dashboard-message { margin-top: 18px; color: #17684e; font-size: .85rem; }
 .overview-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 22px; }
 .feature-card { background: #0c4d4b; color: white; padding: 28px 30px 22px; border-color: #0c4d4b; position: relative; overflow: hidden; }
 .feature-card::after { content: ''; position: absolute; right: -80px; bottom: 30px; width: 230px; height: 230px; border: 1px solid #ffffff0b; border-radius: 50%; box-shadow: 0 0 0 32px #ffffff04, 0 0 0 65px #ffffff03; pointer-events: none; }

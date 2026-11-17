@@ -7,6 +7,7 @@ const navigation = [
   { to: '/', label: 'Home', icon: 'shield' },
   { to: '/login', label: 'Sign in', icon: 'lock' },
   { to: '/register', label: 'Create account', icon: 'globe' },
+  { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
   { to: '/workspace', label: 'Build workspace', icon: 'grid' },
   { to: '/setup', label: 'Getting started', icon: 'code' },
   { to: '/architecture', label: 'Architecture', icon: 'layers' },

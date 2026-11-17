@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import FormField from '../components/FormField.jsx';
 import Icon from '../components/Icon.jsx';
 import { Badge } from '../components/ui.jsx';
 import { validateAuthForm } from '../utils/authValidation.js';
-import { registerAccount, getRegistrationError } from '../services/auth.service.js';
+import { registerAccount, loginAccount, getRegistrationError } from '../services/auth.service.js';
 
 function AuthPage({ mode }) {
   const isRegister = mode === 'register';
+  const navigate = useNavigate();
   const [values, setValues] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'USER' });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -46,18 +47,16 @@ function AuthPage({ mode }) {
       return;
     }
 
-    if (!isRegister) {
-      setFeedback('Your details pass the form checks. Sign-in is not connected yet; you have not been signed in.');
-      setFeedbackType('info');
-      setValues({ ...values, password: '', confirmPassword: '' });
-      return;
-    }
-
     const controller = new AbortController();
     request.current = controller;
     setIsSubmitting(true);
     setFeedback('');
     try {
+      if (!isRegister) {
+        await loginAccount(values, controller.signal);
+        if (!controller.signal.aborted) navigate('/dashboard');
+        return;
+      }
       const user = await registerAccount(values, controller.signal);
       if (controller.signal.aborted) return;
       let message = 'Account created. You are not signed in; sign-in is the next development step.';
@@ -86,10 +85,10 @@ function AuthPage({ mode }) {
         <div className="auth-promise"><span className="icon-box"><Icon name="lock" /></span><div><strong>Your location stays permission-based.</strong><p>Account creation never starts location tracking.</p></div></div>
       </div>
       <section className="card auth-card" aria-labelledby="auth-title">
-        <Badge tone="teal">{isRegister ? 'ACCOUNT SETUP' : 'INTERFACE PREVIEW'}</Badge>
+        <Badge tone="teal">{isRegister ? 'ACCOUNT SETUP' : 'SIGN IN'}</Badge>
         <h2 id="auth-title">{isRegister ? 'Create your account' : 'Sign in'}</h2>
         <p className="auth-intro">{isRegister ? 'A few details to get started.' : 'Use your registered email address.'}</p>
-        <div className="auth-preview-note"><Icon name="info" size={17} /><p>{isRegister ? 'Registration creates an account on the connected backend. It does not sign you in or approve a volunteer. Sign-in is still being built.' : 'Sign-in is not connected yet. This form checks input locally; it sends no credentials and creates no session.'}</p></div>
+        <div className="auth-preview-note"><Icon name="info" size={17} /><p>{isRegister ? 'Registration creates an account on the connected backend. It does not sign you in or approve a volunteer.' : 'Sign in securely to access your dashboard.'}</p></div>
         <form method="post" noValidate onSubmit={handleSubmit} aria-busy={isSubmitting}>
           <fieldset className="auth-fields" disabled={isSubmitting}>
           {isRegister && <FormField id="name" label="Full name" value={values.name} onChange={handleChange} onBlur={handleBlur} autoComplete="name" maxLength={80} required error={errors.name} />}
@@ -99,7 +98,7 @@ function AuthPage({ mode }) {
           </FormField>
           {isRegister && <FormField id="confirmPassword" label="Confirm password" type={showPassword ? 'text' : 'password'} value={values.confirmPassword} onChange={handleChange} onBlur={handleBlur} autoComplete="new-password" required error={errors.confirmPassword} />}
           {isRegister && <fieldset className="role-fieldset"><legend>I want to join as a</legend><div className="role-options"><label className={values.role === 'USER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="USER" checked={values.role === 'USER'} onChange={handleChange} /><span>Community member</span></label><label className={values.role === 'VOLUNTEER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="VOLUNTEER" checked={values.role === 'VOLUNTEER'} onChange={handleChange} /><span>Volunteer</span></label></div>{errors.role && <p className="field-error">{errors.role}</p>}<p className="field-hint">Volunteer status requires admin review. Selecting this role does not grant responder access.</p></fieldset>}
-          <button type="submit" className="button button-primary auth-submit">{isRegister ? isSubmitting ? 'Creating account…' : 'Create account' : 'Check form details'}<Icon name="arrow" size={16} /></button>
+          <button type="submit" className="button button-primary auth-submit">{isRegister ? isSubmitting ? 'Creating account…' : 'Create account' : isSubmitting ? 'Signing in…' : 'Sign in'}<Icon name="arrow" size={16} /></button>
           </fieldset>
           <div className={'form-feedback form-feedback-' + feedbackType} role="status" aria-live="polite">{feedback && <p>{feedback}</p>}</div>
         </form>

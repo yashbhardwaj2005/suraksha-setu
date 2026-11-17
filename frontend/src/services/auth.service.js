@@ -26,6 +26,34 @@ async function registerAccount(values, signal) {
   };
 }
 
+async function loginAccount(values, signal) {
+  const response = await api.post('/auth/login', {
+    email: values.email.trim().toLowerCase(),
+    password: values.password,
+  }, { signal: signal });
+  const user = response.data?.data?.user;
+  if (response.status !== 200 || response.data?.success !== true || !user?.id) {
+    throw new Error('Sign-in could not be confirmed.');
+  }
+  return user;
+}
+
+async function getCurrentUser(signal) {
+  const response = await api.get('/auth/me', { signal: signal });
+  return response.data?.data?.user || null;
+}
+
+async function prepareCsrf() {
+  const response = await api.get('/auth/csrf');
+  const token = response.data?.data?.csrfToken;
+  if (!token || typeof token !== 'string') throw new Error('Could not prepare a secure session request.');
+  api.defaults.headers.common['X-CSRF-Token'] = token;
+}
+
+async function logoutAccount() {
+  await api.post('/auth/logout');
+}
+
 function getRegistrationError(error) {
   const status = error.response?.status;
   if (status === 400) return 'Please check your name, email, password and selected role.';
@@ -37,4 +65,4 @@ function getRegistrationError(error) {
   return 'Registration could not be confirmed. Please try again later.';
 }
 
-export { registerAccount, getRegistrationError };
+export { registerAccount, loginAccount, getCurrentUser, prepareCsrf, logoutAccount, getRegistrationError };
