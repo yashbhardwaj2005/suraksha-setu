@@ -2,9 +2,10 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 
 function createCsrfToken(req, res) {
     const token = randomBytes(32).toString("hex");
+    const sameSite = process.env.COOKIE_SAME_SITE === "none" ? "none" : "lax";
     res.cookie("suraksha_csrf", token, {
         httpOnly: false,
-        sameSite: "lax",
+        sameSite: sameSite,
         secure: process.env.NODE_ENV === "production",
         maxAge: 8 * 60 * 60 * 1000,
         path: "/",

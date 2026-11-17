@@ -13,7 +13,8 @@ function getSafeUser(user) {
 
 function createSession(res, user) {
     const token = jwt.sign({ sub: user._id.toString(), version: user.authVersion }, sessionSecret, { expiresIn: "8h" });
-    res.cookie("suraksha_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 8 * 60 * 60 * 1000, path: "/" });
+    const sameSite = process.env.COOKIE_SAME_SITE === "none" ? "none" : "lax";
+    res.cookie("suraksha_session", token, { httpOnly: true, sameSite: sameSite, secure: process.env.NODE_ENV === "production", maxAge: 8 * 60 * 60 * 1000, path: "/" });
 }
 
 async function register(req, res, next) {
@@ -61,7 +62,8 @@ function me(req, res) {
 async function logout(req, res, next) {
     try {
         await User.updateOne({ _id: req.user._id }, { $inc: { authVersion: 1 } });
-        res.clearCookie("suraksha_session", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+        const sameSite = process.env.COOKIE_SAME_SITE === "none" ? "none" : "lax";
+        res.clearCookie("suraksha_session", { httpOnly: true, sameSite: sameSite, secure: process.env.NODE_ENV === "production", path: "/" });
         return res.status(204).send();
     } catch (error) {
         return next(error);
