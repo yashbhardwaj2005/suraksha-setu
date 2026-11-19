@@ -65,4 +65,15 @@ function getRegistrationError(error) {
   return 'Registration could not be confirmed. Please try again later.';
 }
 
-export { registerAccount, loginAccount, getCurrentUser, prepareCsrf, logoutAccount, getRegistrationError };
+function getLoginError(error) {
+  const status = error.response?.status;
+  if (status === 400) return 'Enter your email address and password.';
+  if (status === 401) return 'Email or password is incorrect.';
+  if (status === 403) return 'Sign-in is unavailable from this address. Use the configured application URL.';
+  if (status === 404) return 'The sign-in endpoint is unavailable. Please try again later.';
+  if (status === 429) return 'Too many sign-in attempts. Please wait before trying again.';
+  if (!error.response) return 'Could not reach the sign-in server. Check your connection and try again.';
+  return 'Sign-in is temporarily unavailable. Please try again later.';
+}
+
+export { registerAccount, loginAccount, getCurrentUser, prepareCsrf, logoutAccount, getRegistrationError, getLoginError };

@@ -1,6 +1,62 @@
 # Project progress
 
-Updated: 2026-10-21 (Asia/Calcutta).
+Updated: 2026-11-19 (Asia/Calcutta).
+
+## Vercel deployment repair (2026-11-19)
+
+The student requested direct diagnosis and fixes for the existing deployments.
+This repair does not approve or implement new phases. The submitted code already
+contains login, cookie sessions, CSRF, dashboards, contacts and SOS routes;
+older statements below describing login as pending are historical.
+
+Live checks found the frontend bundle pointed at surakshasetu-api.vercel.app
+instead of the supplied backend, both /api/v1/health URLs returned Vercel 404,
+the backend /api/health function failed, and frontend /login returned 404.
+Backend / returned the Express JSON 404, confirming mixed function routing.
+
+Repairs: explicit backend function build/routing, frontend API proxy before SPA
+fallback, production same-origin API requests, serverless startup without PORT,
+shared database/index initialization and safe retryable database errors. Login
+feedback now describes login failures instead of registration failures.
+Local backend/.env and its credentials were not changed.
+
+Checks: all 52 existing backend tests, five serverless HTTP regression
+tests, 16 frontend tests and the production build passed. The built bundle uses
+/api/v1 and omits the incorrect backend hostname. Serverless tests exercise real
+bcrypt/JWT/cookie/CSRF code with mocked database persistence; they do not prove
+production MongoDB connectivity, browser cookie behavior or emergency delivery.
+
+The CLI refreshed the expired Vercel login and deployed both applications.
+Live /login, /register and /dashboard return HTTP 200. Atlas inspection found
+the correct M0 cluster running, but its allowlist contained only an old fixed
+IP. Initial local DNS passed while TLS handshakes and production server selection
+failed. After explicit user approval, added 0.0.0.0/0 for this academic prototype.
+The initial automatic approval rejection caused no network change; the user then
+approved this exact range and its implications. TLS verification and database
+authentication remain required. The existing database user has admin privileges;
+narrowing its role and using fixed-egress hosting remain security follow-up work.
+No other Atlas project or cluster was modified.
+
+Both production health endpoints now return 200; local Atlas connection/ping
+passes. Actual HTTP requests through the production frontend proxy verify
+registration/persistence, duplicate signup, invalid credentials, login, secure
+host-only cookies, session restoration, CSRF rejection, contact create/list/delete,
+pending contact consent, fictional SOS creation, duplicate-active prevention,
+cancellation and logout. Created one unique fictional account and removed its
+contacts, SOS and user afterward. No external notification provider is wired or
+called. Browser UI/GPS interaction and real alert delivery were not tested.
+Fixed the frontend contact handler retaining event.currentTarget across await;
+the production build passed and the frontend was redeployed.
+
+Production FRONTEND_ORIGIN, COOKIE_SAME_SITE and NODE_ENV were corrected to the
+frontend origin, lax and production. Existing MongoDB/JWT secrets were preserved.
+Vercel proxy trust is limited to one hop; the regression test verifies client
+rate limits remain separate. Limits still use process memory across instances.
+Existing contacts/SOS features have not received a full security review here.
+No new phase is authorized. Source fixes and verification notes are recorded
+together for subsequent Git-triggered deployments. Next product work remains subject
+to the phase checkpoints; SMS delivery, matching and live tracking are not
+implemented by this repair.
 
 ## Current phase
 

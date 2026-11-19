@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { api } from '../src/services/api.js';
-import { registerAccount, getRegistrationError } from '../src/services/auth.service.js';
+import { registerAccount, loginAccount, getRegistrationError, getLoginError } from '../src/services/auth.service.js';
 
 let originalAdapter;
 const safeUser = { id: '507f1f77bcf86cd799439011', name: 'Fictional User', email: 'student@example.invalid', role: 'USER', accountStatus: 'ACTIVE', verificationStatus: 'NOT_REQUESTED' };
@@ -49,4 +49,24 @@ test('server error internals are not echoed to the interface', () => {
   const result = getRegistrationError({ response: { status: 500, data: { error: { message: 'private-driver-details' } } } });
   assert.ok(!result.includes('private-driver-details'));
   assert.match(result, /could not be confirmed/);
+});
+
+test('login sends normalized credentials with cookies and checks the receipt', async () => {
+  api.defaults.adapter = async (config) => {
+    assert.equal(config.url, '/auth/login');
+    assert.equal(config.withCredentials, true);
+    assert.deepEqual(JSON.parse(config.data), { email: safeUser.email, password: ' fictional-password ' });
+    return { data: { success: true, data: { user: safeUser } }, status: 200, headers: {}, config };
+  };
+  assert.deepEqual(await loginAccount({ email: ' STUDENT@EXAMPLE.INVALID ', password: ' fictional-password ' }), safeUser);
+  api.defaults.adapter = async config => ({ data: '<html>wrong deployment</html>', status: 200, headers: {}, config });
+  await assert.rejects(() => loginAccount({ email: safeUser.email, password: 'fictional-password' }), /Sign-in could not be confirmed/);
+});
+
+test('login errors distinguish invalid credentials, throttling and deployment failures', () => {
+  assert.match(getLoginError({ response: { status: 401 } }), /Email or password is incorrect/);
+  assert.match(getLoginError({ response: { status: 429 } }), /Too many sign-in attempts/);
+  assert.match(getLoginError({ response: { status: 404 } }), /sign-in endpoint is unavailable/);
+  assert.match(getLoginError(new Error('private request details')), /Could not reach/);
+  assert.ok(!getLoginError({ response: { status: 503, data: { error: { message: 'private-db-details' } } } }).includes('private-db-details'));
 });

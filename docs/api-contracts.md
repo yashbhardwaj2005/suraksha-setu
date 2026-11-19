@@ -1,5 +1,27 @@
 # API contracts: implemented and proposed
 
+Deployment update (2026-11-19): submitted login/session/CSRF/logout endpoints
+are implemented despite older proposal text below. POST /api/v1/auth/login
+accepts email/password, returns a safe user with an HttpOnly session cookie;
+GET /api/v1/auth/me restores it. GET /api/v1/auth/csrf returns a token and CSRF
+cookie. POST /api/v1/auth/logout requires the session, exact FRONTEND_ORIGIN
+and X-CSRF-Token matching that cookie; it increments authVersion and clears
+the session. Deployment regression tests verify these flows with mocked users.
+
+Production frontend requests use same-origin /api/v1 through a Vercel rewrite
+to the backend. API responses are not cacheable. Backend function initialization
+failure returns HTTP 503 with code DATABASE_UNAVAILABLE and a fixed message,
+without raw database errors. Health through this entry requires successful
+initialization, but its unchanged response is not a continuous database probe.
+No new contacts/SOS contract or future phase is approved by this repair.
+
+Live production HTTP verification (2026-11-19): frontend-proxied registration,
+duplicate signup, invalid/valid login, secure cookie restoration, CSRF rejection,
+contact create/list/delete, SOS create/duplicate/cancel and logout pass. Tests
+used a unique fictional account, a reserved fictional phone number and synthetic
+0,0 coordinates; temporary records were removed. No real messages were sent.
+Both live health URLs return 200 after the approved Atlas network repair.
+
 Status: Phase 2 in progress. Health/error handling and public registration are
 implemented. The registration form calls the real API; login is a local preview.
 Cookie sessions, logout, protected endpoints and future-phase APIs remain proposed.

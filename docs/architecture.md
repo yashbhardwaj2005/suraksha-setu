@@ -3,6 +3,31 @@
 Status: Phase 1 foundation, Phase 2 User model and public registration are
 implemented. Login/session authentication and future models remain proposed.
 Date: 2026-10-21.
+
+Deployment update (2026-11-19): the existing submitted application now includes
+login/JWT sessions and CSRF. Earlier descriptions of these as proposed are
+historical. Backend Vercel builds only api/index.js and routes requests there,
+awaiting shared MongoDB/index initialization before invoking Express. Missing
+PORT is allowed in Vercel; local startup validation remains. Failed database
+initialization returns sanitized JSON 503 and can retry on a later invocation.
+API responses use Cache-Control: no-store.
+Vercel proxy trust is limited to one hop so per-IP login/registration limits
+can distinguish clients. These in-memory limits are not shared across instances.
+
+The frontend Vercel project proxies /api/* to the supplied backend before its
+SPA fallback. Production Axios always uses /api/v1, regardless of an obsolete
+VITE_API_BASE_URL setting. Host-only HttpOnly session cookies therefore belong
+to the frontend site; SameSite=Lax and Secure are appropriate over HTTPS.
+Backend FRONTEND_ORIGIN must exactly match the frontend production origin,
+and MONGODB_URI and a persistent JWT_SECRET must be set securely in Vercel.
+Vercel config is per app; project root directories must be backend/frontend.
+Both apps have been deployed. The user explicitly approved Atlas 0.0.0.0/0
+network access for this academic prototype after inspection confirmed only an
+old fixed IP was allowed. No TLS/authentication bypass was added. Both health
+endpoints now return 200. Real production HTTP checks through the frontend proxy
+pass login/session/CSRF/logout, contacts and fictional SOS create/duplicate/cancel
+flows. Browser interaction/GPS and alert delivery remain unverified. Matching,
+notifications and live tracking are not implemented by this repair.
 This document covers future phases for discussion, not authorization to
 implement them now. Follow the ownership and phase rules in `../AGENTS.md`.
 

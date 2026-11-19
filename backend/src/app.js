@@ -11,6 +11,9 @@ import errorHandler from "./middlewares/errorHandler.js";
 const app = express();
 const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5173";
 
+// Vercel sets the client IP header; trust only the immediate platform proxy.
+if (process.env.VERCEL === "1") app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(cors({ origin: frontendOrigin, credentials: true, methods: ["GET", "POST", "PATCH", "DELETE"], allowedHeaders: ["Content-Type", "X-CSRF-Token"] }));
 app.use(express.json({ limit: "16kb" }));

@@ -4,7 +4,7 @@ import FormField from '../components/FormField.jsx';
 import Icon from '../components/Icon.jsx';
 import { Badge } from '../components/ui.jsx';
 import { validateAuthForm } from '../utils/authValidation.js';
-import { registerAccount, loginAccount, getRegistrationError } from '../services/auth.service.js';
+import { registerAccount, loginAccount, getRegistrationError, getLoginError } from '../services/auth.service.js';
 
 function AuthPage({ mode }) {
   const isRegister = mode === 'register';
@@ -59,16 +59,16 @@ function AuthPage({ mode }) {
       }
       const user = await registerAccount(values, controller.signal);
       if (controller.signal.aborted) return;
-      let message = 'Account created. You are not signed in; sign-in is the next development step.';
+      let message = 'Account created. You can now sign in with your email and password.';
       if (user.role === 'VOLUNTEER') {
-        message += ' Your volunteer account is not approved. Verification requests will be added later.';
+        message += ' Your volunteer account requires admin approval. Request verification from your dashboard.';
       }
       setFeedback(message);
       setFeedbackType('success');
       setValues({ ...values, password: '', confirmPassword: '' });
     } catch (error) {
       if (controller.signal.aborted) return;
-      setFeedback(getRegistrationError(error));
+      setFeedback(isRegister ? getRegistrationError(error) : getLoginError(error));
       setFeedbackType('error');
     } finally {
       if (!controller.signal.aborted) setIsSubmitting(false);
@@ -102,7 +102,7 @@ function AuthPage({ mode }) {
           </fieldset>
           <div className={'form-feedback form-feedback-' + feedbackType} role="status" aria-live="polite">{feedback && <p>{feedback}</p>}</div>
         </form>
-        <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Community Safety?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Preview sign-in' : 'Create account'}</Link></p>
+        <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Community Safety?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create account'}</Link></p>
       </section>
     </div>
     <p className="auth-emergency-note">Need emergency services now? <a href="tel:112">Call 112</a>. This academic prototype is not an emergency-response service.</p>

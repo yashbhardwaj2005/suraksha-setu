@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env?.VITE_API_BASE_URL || '/api/v1',
+  // Production uses the Vercel proxy so session cookies stay on this site.
+  baseURL: import.meta.env?.PROD ? '/api/v1' : import.meta.env?.VITE_API_BASE_URL || '/api/v1',
   timeout: 8000,
   withCredentials: true,
   headers: { Accept: 'application/json' },

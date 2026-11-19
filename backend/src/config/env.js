@@ -1,5 +1,6 @@
 // Node loads .env before importing this module (see the package scripts).
-const rawPort = process.env.PORT?.trim();
+// A serverless function never opens a port; keep local startup validation.
+const rawPort = process.env.PORT?.trim() ?? (process.env.VERCEL === "1" ? "5000" : undefined);
 const port = Number(rawPort);
 
 if (!rawPort || !Number.isInteger(port) || port < 1 || port > 65535) {

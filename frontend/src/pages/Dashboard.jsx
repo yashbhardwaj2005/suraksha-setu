@@ -27,10 +27,11 @@ function Dashboard() {
 
   async function addContact(event) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       await api.post('/contacts', { name: form.get('name'), relationship: form.get('relationship'), phone: form.get('phone') });
-      event.currentTarget.reset();
+      formElement.reset();
       setMessage('Emergency contact added.');
       loadDashboard();
     } catch (error) {
