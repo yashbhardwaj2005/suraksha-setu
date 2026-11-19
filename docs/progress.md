@@ -60,8 +60,11 @@ on-the-way status, community withdrawal, immediate offline release, mode
 switching with approval preserved, and cancellation/point deletion all passed.
 All exact fixture records were removed; existing accounts/SOS records preserved.
 No real notifications were sent and no test device subscription was registered.
-Frontend production deployed READY; final source sync and static route/worker
-verification follow. Recipients can enable push immediately after accepting an
+Frontend and backend Git production deployments both READY at implementation
+commit 619373e. Live verification passed for nine routes/assets, the current
+responder UI bundle, correct JavaScript service-worker delivery with no-cache,
+standalone manifest, absence of the backend private push key from the browser
+bundle, healthy API proxy and authenticated-only protected routes. Recipients can enable push immediately after accepting an
 invitation or from My account. Native device behaviour remains untested.
 
 Updated: 2026-11-19 (Asia/Calcutta).
