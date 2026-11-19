@@ -5,6 +5,9 @@ import express from "express";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import User from "../src/models/user.model.js";
+import SOS from "../src/models/sos.model.js";
+import EmergencyContact from "../src/models/contact.model.js";
+import { PushSubscription, PushAttempt } from "../src/models/push.model.js";
 
 // Exercise the actual serverless entry without a local .env or listening port.
 process.env.VERCEL = "1";
@@ -33,9 +36,11 @@ before(async () => {
     mock.method(User, "init", async () => {
         await new Promise(resolve => setTimeout(resolve, 40));
     });
+    for (const model of [SOS, EmergencyContact, PushSubscription, PushAttempt]) mock.method(model, "init", async () => {});
     mock.method(User, "findOne", query => ({ select: async () => query.email === user.email ? user : null }));
     mock.method(User, "findById", async id => id === user.id ? user : null);
     mock.method(User, "updateOne", async () => { user.authVersion += 1; });
+    mock.method(PushSubscription, "deleteMany", async () => {});
     const gateway = express();
     gateway.use(handler);
     server = gateway.listen(0, "127.0.0.1");

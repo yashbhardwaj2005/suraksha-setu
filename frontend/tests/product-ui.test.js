@@ -21,24 +21,25 @@ before(async () => {
 });
 after(async () => { if (server) await server.close(); });
 
-function render(path, signedIn = false) {
-  session.setSession({ user: signedIn ? user : null, status: signedIn ? 'authenticated' : 'anonymous' });
+function render(path, signedIn = false, overrides = {}) {
+  session.setSession({ user: signedIn ? { ...user, ...overrides } : null, status: signedIn ? 'authenticated' : 'anonymous' });
   return renderToStaticMarkup(React.createElement(MemoryRouter, { initialEntries: [path] }, React.createElement(App)));
 }
 
-test('public home explains manual sending and keeps emergency calling accessible', () => {
+test('public home explains automatic community requests and keeps emergency calling accessible', () => {
   const html = render('/');
   assert.match(html, /Your people/);
-  assert.match(html, /confirm Send/);
+  assert.match(html, /Requests appear automatically/);
+  assert.match(html, /within 5 km/);
   assert.match(html, /href="tel:112"/);
   assert.ok(!/href="\/(architecture|workspace|setup)"/.test(html));
 });
 
 test('signed-in navigation has only user tasks and a cancellable SOS action', () => {
   const html = render('/dashboard', true);
-  for (const path of ['/dashboard', '/contacts', '/account']) assert.ok(html.includes('href="' + path + '"'));
+  for (const path of ['/dashboard', '/contacts', '/volunteer', '/account']) assert.ok(html.includes('href="' + path + '"'));
   assert.match(html, /five-second cancellation countdown/);
-  assert.match(html, /You must tap Send/);
+  assert.match(html, /In-app alerts are automatic/);
   assert.ok(!/Architecture|Build workspace|Phase 02|Development/.test(html));
 });
 
@@ -62,4 +63,28 @@ test('private alert routes expose no map or location before session authorizatio
   const html = render('/alerts/507f1f77bcf86cd799439011');
   assert.ok(!html.includes('location-map'));
   assert.ok(!html.includes('tile.openstreetmap.org'));
+});
+
+test('community signup selects volunteer mode and both modes stay accessible from one account', () => {
+  assert.match(render('/'), /Join as a volunteer/);
+  assert.match(render('/register?role=volunteer'), /<input(?=[^>]*value="VOLUNTEER")(?=[^>]*checked="")[^>]*>/);
+  const html = render('/account', true);
+  assert.match(html, /Personal safety/);
+  assert.match(html, /Request verification/);
+  assert.match(html, /Enable automatic notifications/);
+});
+
+test('volunteer access explains approval, availability and browser location limits', () => {
+  assert.match(render('/volunteer', true), /Switch to volunteer mode/);
+  assert.match(render('/volunteer', true, { role: 'VOLUNTEER' }), /Get approved before responding/);
+  const approved = render('/volunteer', true, { role: 'VOLUNTEER', verificationStatus: 'APPROVED' });
+  assert.match(approved, /Go available/);
+  assert.match(approved, /expires within 90 seconds/);
+  assert.ok(!approved.includes('location-map'));
+});
+
+test('only administrator accounts see the volunteer review screen', () => {
+  assert.ok(!render('/account', true).includes('ADMIN REVIEW'));
+  assert.ok(!render('/account', true, { role: 'VOLUNTEER' }).includes('ADMIN REVIEW'));
+  assert.match(render('/account', true, { role: 'ADMIN' }), /ADMIN REVIEW/);
 });

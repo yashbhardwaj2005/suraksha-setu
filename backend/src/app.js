@@ -5,6 +5,7 @@ import helmet from "helmet";
 import authRouter from "./routes/auth.routes.js";
 import contactRouter from "./routes/contact.routes.js";
 import sosRouter from "./routes/sos.routes.js";
+import pushRouter from "./routes/push.routes.js";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
@@ -28,6 +29,7 @@ app.get("/api/v1/health", (req, res) => res.status(200).json({ success: true, da
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/contacts", contactRouter);
 app.use("/api/v1/sos", sosRouter);
+app.use("/api/v1/push", pushRouter);
 app.use(notFound);
 app.use(errorHandler);
 

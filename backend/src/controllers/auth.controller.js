@@ -1,6 +1,9 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import SOS from "../models/sos.model.js";
+import mongoose from "mongoose";
+import { PushSubscription } from "../models/push.model.js";
 import { sessionSecret } from "../config/session.js";
 
 function sendError(res, statusCode, code, message) {
@@ -8,7 +11,7 @@ function sendError(res, statusCode, code, message) {
 }
 
 function getSafeUser(user) {
-    return { id: user._id.toString(), name: user.name, email: user.email, role: user.role, accountStatus: user.accountStatus, verificationStatus: user.verificationStatus };
+    return { id: user._id.toString(), name: user.name, email: user.email, role: user.role, accountStatus: user.accountStatus, verificationStatus: user.verificationStatus, volunteerAvailable: Boolean(user.volunteerAvailable && user.presenceExpiresAt > new Date()), presenceExpiresAt: user.presenceExpiresAt };
 }
 
 function createSession(res, user) {
@@ -61,7 +64,8 @@ function me(req, res) {
 
 async function logout(req, res, next) {
     try {
-        await User.updateOne({ _id: req.user._id }, { $inc: { authVersion: 1 } });
+        await User.updateOne({ _id: req.user._id }, { $inc: { authVersion: 1 }, $set: { volunteerAvailable: false }, $unset: { volunteerLocation: 1, volunteerAccuracy: 1, presenceExpiresAt: 1, presenceSession: 1 } });
+        await PushSubscription.deleteMany({ ownerId: req.user._id });
         const sameSite = process.env.COOKIE_SAME_SITE === "none" ? "none" : "lax";
         res.clearCookie("suraksha_session", { httpOnly: true, sameSite: sameSite, secure: process.env.NODE_ENV === "production", path: "/" });
         return res.status(204).send();
@@ -72,7 +76,7 @@ async function logout(req, res, next) {
 
 async function requestVolunteerVerification(req, res, next) {
     try {
-        if (req.user.role !== "VOLUNTEER") return sendError(res, 403, "FORBIDDEN", "Only volunteers can request verification");
+        if (req.user.role === "ADMIN") return sendError(res, 403, "FORBIDDEN", "Administrator accounts cannot apply as volunteers");
         if (!["NOT_REQUESTED", "REJECTED"].includes(req.user.verificationStatus)) return sendError(res, 409, "VERIFICATION_EXISTS", "A verification request is already being reviewed");
         req.user.verificationStatus = "PENDING";
         await req.user.save();
@@ -84,7 +88,7 @@ async function requestVolunteerVerification(req, res, next) {
 
 async function listVolunteerApplications(req, res, next) {
     try {
-        const users = await User.find({ role: "VOLUNTEER", verificationStatus: "PENDING" });
+        const users = await User.find({ role: { $ne: "ADMIN" }, verificationStatus: "PENDING" });
         return res.status(200).json({ success: true, data: { users: users.map(getSafeUser) } });
     } catch (error) {
         return next(error);
@@ -95,9 +99,11 @@ async function reviewVolunteer(req, res, next) {
     try {
         const status = req.body?.verificationStatus;
         if (!["APPROVED", "REJECTED"].includes(status)) return sendError(res, 400, "VALIDATION_ERROR", "Choose APPROVED or REJECTED");
-        const user = await User.findOne({ _id: req.params.userId, role: "VOLUNTEER" });
+        if (!mongoose.isValidObjectId(req.params.userId)) return sendError(res, 404, "NOT_FOUND", "Volunteer was not found");
+        const user = await User.findOne({ _id: req.params.userId, role: { $ne: "ADMIN" }, accountStatus: "ACTIVE" });
         if (!user) return sendError(res, 404, "NOT_FOUND", "Volunteer was not found");
         user.verificationStatus = status;
+        if (status !== "APPROVED") { user.volunteerAvailable = false; user.volunteerLocation = undefined; user.volunteerAccuracy = undefined; user.presenceExpiresAt = undefined; user.presenceSession = undefined; }
         await user.save();
         return res.status(200).json({ success: true, data: { user: getSafeUser(user) } });
     } catch (error) {
@@ -105,4 +111,15 @@ async function reviewVolunteer(req, res, next) {
     }
 }
 
-export { register, login, me, logout, requestVolunteerVerification, listVolunteerApplications, reviewVolunteer };
+async function switchMode(req, res, next) {
+    try {
+        const role = req.body?.role;
+        if (req.user.role === "ADMIN" || !["USER", "VOLUNTEER"].includes(role)) return sendError(res, 400, "INVALID_MODE", "Choose personal or volunteer mode");
+        if (role === "VOLUNTEER" && await SOS.exists({ userId: req.user._id, isOpen: true })) return sendError(res, 409, "ACTIVE_SOS_EXISTS", "End your own SOS before volunteering");
+        const user = await User.findByIdAndUpdate(req.user._id, { $set: { role, volunteerAvailable: false }, $unset: { volunteerLocation: 1, volunteerAccuracy: 1, presenceExpiresAt: 1, presenceSession: 1 } }, { returnDocument: "after" });
+        await SOS.updateMany({ assignedVolunteerId: req.user._id, isOpen: true }, { $set: { status: "ACTIVE" }, $unset: { assignedVolunteerId: 1, responderExpiresAt: 1 } });
+        return res.status(200).json({ success: true, data: { user: getSafeUser(user) } });
+    } catch (error) { return next(error); }
+}
+
+export { register, login, me, logout, requestVolunteerVerification, listVolunteerApplications, reviewVolunteer, switchMode };

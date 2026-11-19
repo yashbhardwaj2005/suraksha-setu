@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import { MONGODB_URI } from "./env.js";
 import User from "../models/user.model.js";
+import SOS from "../models/sos.model.js";
+import EmergencyContact from "../models/contact.model.js";
+import { PushSubscription, PushAttempt } from "../models/push.model.js";
 
 let connectionPromise;
 let databaseReady = false;
@@ -14,7 +17,7 @@ async function initializeDatabase() {
     }
 
     // Do not accept signups until MongoDB has the unique email index.
-    await User.init();
+    await Promise.all([User.init(), SOS.init(), EmergencyContact.init(), PushSubscription.init(), PushAttempt.init()]);
     databaseReady = true;
 
     console.log("MongoDB connected successfully");

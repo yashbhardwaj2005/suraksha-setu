@@ -1,5 +1,69 @@
 # Project progress
 
+## Community responder implementation (2026-11-19)
+
+The student clarified the core product: one account switches between needing
+help and volunteering; the backend selects available nearby responders from
+saved fresh locations. They explicitly delegated the backend and frontend work
+and asked for manual involvement only when required. This authorizes the scoped
+Phase 5 implementation and integration/deployment below, superseding the earlier
+matching permission hold. It does not activate paid SMS or WhatsApp providers.
+
+Implemented personal/volunteer mode switching with approval preserved, admin
+application review, volunteer GPS every 20 seconds while the responder screen
+is visible, 90-second presence and assignment leases, and MongoDB 2dsphere
+matching within 5 km. Requests refresh every five seconds. Approval, active
+account, volunteer mode, freshness, availability, busy state and owner opt-in
+are checked server-side. Existing SOS records are not opted into community
+sharing automatically. Volunteering requires GPS accuracy within 200 metres;
+nearby SOS matching requires a point within two minutes and accuracy <= 1 km.
+GPS is self-reported by the browser, not independently verified presence.
+
+Offers show rounded distance and time, without coordinates or victim identity.
+An atomic claim and a unique open-assignment index allow one responder per SOS
+and one open assignment per helper. Assigned location reads require current
+approval/presence, a live assignment lease, an active owner and an unexpired SOS.
+Going offline or switching modes releases the assignment and clears volunteer
+coordinates. Expiry prevents further access; stale points are also cleared on
+subsequent responder/matching requests. No user document is deleted by TTL.
+Starting one's own SOS takes priority and releases volunteer work. Ending SOS
+removes both scalar and indexed coordinates; stopping community sharing also
+revokes the responder. Closed-page GPS is explicitly unsupported.
+
+Free standard Web Push uses a generated VAPID pair in backend production secrets;
+no private key is committed or put into Vite. Authenticated devices opt in once.
+A service worker displays generic notifications with protected app links and no
+coordinates. The backend automatically notifies current consenting snapshot
+contacts and eligible nearby volunteers. A unique per-SOS/device attempt prevents
+duplicate attempts across concurrent functions. Attempts distinguish ATTEMPTED,
+provider ACCEPTED and FAILED; none claims confirmed delivery. SOS persists if
+push fails. In-app contact alerts refresh every ten seconds throughout the app.
+SMS/WhatsApp drafts remain an optional manual backup, not the automatic channel.
+There is no paid provider or Telegram integration. Browser/OS permission and
+internet are required; iOS users must open the installed Home Screen web app.
+
+The designated existing account was granted administrator review access with
+explicit user authorization. No other account was promoted or auto-approved.
+The existing production remained on the previous UI throughout implementation.
+
+Local checks: backend 59 checks (including real offline push encryption); existing sharing integration 7 checks; responder
+integration 9 checks using isolated temporary Atlas databases and mocked push;
+frontend 29 checks including role UI and service-worker URL protection; Vite
+production build. Dependency audit: 0 known backend vulnerabilities after
+compatible Mongoose/body-parser patches. Actual device GPS, OS notifications,
+background behaviour and physical arrival are not established by these tests.
+Production backend deployed READY on the existing alias. A production smoke
+check used four temporary fictional accounts and uninhabited-area test points:
+real login/CSRF, consent invitation, push public-key configuration, automatic
+in-app contact inbox, nearby filtering, competing claims, assigned map privacy,
+on-the-way status, community withdrawal, immediate offline release, mode
+switching with approval preserved, and cancellation/point deletion all passed.
+All exact fixture records were removed; existing accounts/SOS records preserved.
+No real notifications were sent and no test device subscription was registered.
+Frontend production deployed READY; final source sync and static route/worker
+verification follow. Recipients can enable push immediately after accepting an
+invitation or from My account. Native device behaviour remains untested.
+
 Updated: 2026-11-19 (Asia/Calcutta).
 
 ## User-directed practical rebuild (2026-11-19)

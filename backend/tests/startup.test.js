@@ -30,6 +30,9 @@ const startupHarness = `
     import mongoose from "mongoose";
     import app from "./src/app.js";
     import User from "./src/models/user.model.js";
+    import SOS from "./src/models/sos.model.js";
+    import EmergencyContact from "./src/models/contact.model.js";
+    import { PushSubscription, PushAttempt } from "./src/models/push.model.js";
 
     let connected = false;
     let indexesReady = false;
@@ -51,6 +54,7 @@ const startupHarness = `
         indexesReady = true;
         console.log("TEST_INDEXES_READY");
     };
+    for (const model of [SOS, EmergencyContact, PushSubscription, PushAttempt]) model.init = async () => {};
     app.listen = (port, onListening) => {
         assert.equal(connected, true, "HTTP must wait for MongoDB");
         assert.equal(indexesReady, true, "HTTP must wait for the unique email index");

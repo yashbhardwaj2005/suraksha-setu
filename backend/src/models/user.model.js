@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 function removePasswordHash(doc, result) {
     delete result.passwordHash;
+    delete result.volunteerLocation;
+    delete result.volunteerAccuracy;
+    delete result.presenceSession;
     return result;
 }
 
@@ -55,12 +58,22 @@ const userSchema = new mongoose.Schema({
             message: "authVersion must be an integer",
         },
     },
+    volunteerAvailable: { type: Boolean, default: false },
+    presenceSession: { type: String, select: false },
+    presenceExpiresAt: { type: Date },
+    volunteerLocation: {
+        type: new mongoose.Schema({ type: { type: String, enum: ["Point"], required: true }, coordinates: { type: [Number], required: true } }, { _id: false }),
+        select: false,
+    },
+    volunteerAccuracy: { type: Number, min: 0, select: false },
 }, {
     timestamps: true,
     toJSON: {
         transform: removePasswordHash,
     },
 });
+
+userSchema.index({ volunteerLocation: "2dsphere" });
 
 const User = mongoose.model("User", userSchema);
 

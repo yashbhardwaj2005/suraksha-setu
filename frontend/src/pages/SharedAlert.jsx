@@ -15,7 +15,7 @@ function SharedAlert() {
     const controller = new AbortController();
     async function refresh() {
       if (document.hidden) { setAlert(null); return; }
-      try { const response = await api.get('/sos/' + sosId + '/shared', { signal: controller.signal }); setAlert(response.data.data.alert); setMessage(''); }
+      try { const response = await api.get('/sos/' + sosId + '/shared', { signal: controller.signal }); if (!controller.signal.aborted && !document.hidden) { setAlert(response.data.data.alert); setMessage(''); } }
       catch (error) { if (!controller.signal.aborted) { setAlert(null); setMessage([404, 410].includes(error.response?.status) ? 'This alert has ended, expired, or is not shared with this account.' : getSafetyError(error)); } }
       finally { if (!controller.signal.aborted) setLoading(false); }
     }

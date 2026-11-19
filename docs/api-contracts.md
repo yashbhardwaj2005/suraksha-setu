@@ -1,5 +1,53 @@
 # API contracts: implemented and proposed
 
+## Implemented community responder contracts (2026-11-19)
+
+Explicit student delegation authorizes this scoped Phase 5 implementation. Every
+route requires an active session; mutations also require CSRF and the exact
+configured Origin. Existing contact/private-sharing routes remain compatible.
+
+- PATCH /auth/mode {role: USER|VOLUNTEER}: same account, approval retained;
+  clears volunteer presence and releases assigned work. ADMIN is not selectable.
+  Switching to volunteer while one's own SOS is open returns 409.
+- POST /auth/volunteer-verification: any non-admin may apply. Admin review lists
+  pending non-admin accounts regardless of current personal/volunteer mode.
+- POST /sos/volunteer/presence {available:true,latitude,longitude,accuracy}:
+  starts an approved volunteer's availability session; returns sessionId and
+  expiresAt. Accuracy must be <=200 m. PATCH with the same fields plus sessionId
+  renews a current session. Old session tokens cannot revive stopped presence.
+- PATCH /sos/volunteer/presence {available:false,sessionId?}: stops one's own
+  presence, clears the point and releases current assigned work.
+- POST /sos additionally accepts requestCommunity:true for explicit opt-in;
+  omitted/false leaves an SOS contact-only. Starting SOS stops volunteer work.
+- GET /sos/volunteer/requests: fresh available approved volunteer only; nearby
+  requests within 5 km, active owner, recent point <=2 min, accuracy <=1 km,
+  explicit community opt-in, unexpired sharing and no current responder lease.
+  Offers contain id, status, timestamps and rounded distanceMeters, no location.
+- PATCH /sos/:sosId/accept: rechecks eligibility and distance; atomically claims
+  one request. Unique open-assignment index permits one request per helper.
+  Lost races, private/out-of-range/expired requests and busy helpers return 409.
+- GET /sos/volunteer/assignment: current eligible helper receives only their
+  own valid assignment's name/status/last point and timestamps; otherwise null
+  (or 403 when presence/approval is absent). ADMIN cannot use this route.
+- PATCH /sos/:sosId/respond: assigned eligible helper marks RESPONDING.
+- PATCH /sos/:sosId/release: assigned helper releases work and loses map access.
+- PATCH /sos/:sosId/community {enabled:boolean}: owner-only; disabling revokes
+  assignment/access. Enabling offers the current point when eligible.
+- GET /sos/active adds sanitized responder name/online/lease and aggregate push
+  attempted/accepted/failed counts. Accepted means provider acceptance only.
+- GET /push/key returns the configured public VAPID key, never its private key.
+- POST /push/subscriptions accepts a supported browser PushSubscription. HTTPS
+  endpoint allowlist, key validation, CSRF and five-device/account cap apply.
+- DELETE /push/subscriptions {endpoint} removes only the current user's device.
+  Logout revokes account sessions and removes its stored push subscriptions.
+
+SOS creates/updates dispatch notifications to current consenting snapshot contacts
+and eligible responders. One attempt per SOS/device is claimed in MongoDB before
+sending. Provider failure persists as FAILED without failing the saved SOS. Exact
+coordinates are never included in push or outgoing SMS/WhatsApp message text.
+SOS cancellation deletes latitude, longitude, accuracy and indexed GeoJSON point.
+Legacy SOS records are not auto-opted into community location sharing.
+
 ## Current contact and SOS sharing contracts (2026-11-19)
 
 The student directly requested the practical rebuild and selected manual

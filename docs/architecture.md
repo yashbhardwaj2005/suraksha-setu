@@ -1,5 +1,52 @@
 # Architecture proposal — Phase 1
 
+## Current community responder architecture (2026-11-19)
+
+The student's explicit implementation delegation now covers nearby responders.
+One authenticated account switches USER/VOLUNTEER mode; verification is a separate
+persistent approval state. ADMIN remains a restricted review role, without
+blanket SOS location access. Contact consent remains independent of mode.
+
+User stores one GeoJSON volunteer point with availability and server expiry.
+Presence updates require admin approval, active account, volunteer mode and
+accurate GPS. An availability-session token prevents a delayed heartbeat from
+reviving a stopped session. The client saves fresh GPS every 20 seconds only
+while its responder screen is visible. Presence expires in 90 seconds; offline
+clears the point, and later matching requests prune stale points. There is no
+continuous background or closed-browser location promise.
+
+SOS stores the current GeoJSON point plus existing latitude/longitude fields,
+explicit community opt-in, recent-location timestamp, sharing expiry and one
+assigned helper with a renewable 90-second lease. 2dsphere queries select eligible
+volunteers within 5 km. Offers reveal rounded distance only. Atomic assignment
+and a partial unique helper index prevent competing responders and double work.
+Lease expiry permits reassignment; old helpers lose access immediately when the
+assignment changes. Cancellation removes every stored representation of the
+point. Contacts retain scoped access only through current consent and the SOS
+recipient snapshot. Role switching and starting one's own SOS stop volunteering.
+
+Standard Web Push adds only the web-push dependency. VAPID keys are generated once,
+kept outside source control, and configured as backend-only Vercel secrets.
+Notification endpoints are restricted to known HTTPS browser push providers to
+prevent arbitrary outbound requests. Subscription reads and keys are not public.
+Per-SOS/device attempt records have a unique claim and 30-day retention; device
+subscriptions expire after 60 days unless refreshed. Push failures never roll
+back SOS creation. Push payloads contain no names or coordinates, only a generic
+notice and a protected app route. Service-worker clicks permit only internal SOS
+or responder routes. Logout clears notification subscriptions for that account.
+
+Automatic inbox polling (five seconds for responders, ten for contact banners)
+is used with MongoDB as the authority across serverless instances; no in-memory
+Socket.IO rooms or connection state are relied on. Push is an additional wake-up
+channel, not a confirmed-delivery signal. Map views recheck access and clear on
+hidden/error states. No paid provider is activated. Per-instance request limits
+provide basic throttling; they are not a distributed abuse-control guarantee.
+
+Technical references: MongoDB geospatial queries
+https://www.mongodb.com/docs/manual/geospatial-queries/ ; Web Push implementation
+https://github.com/web-push-libs/web-push ; Apple web-app push requirements
+https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers .
+
 Status: Phase 1 foundation, Phase 2 User model and public registration are
 implemented. Login/session authentication and future models remain proposed.
 Date: 2026-10-21.

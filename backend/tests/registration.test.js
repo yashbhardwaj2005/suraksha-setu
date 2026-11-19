@@ -59,7 +59,7 @@ test("registration hashes the password, normalizes identity and returns only saf
     assert.equal(response.headers.get("set-cookie"), null);
     const body = await response.json();
     assert.equal(body.success, true);
-    assert.deepEqual(Object.keys(body.data.user).sort(), ["id", "name", "email", "role", "accountStatus", "verificationStatus"].sort());
+    assert.deepEqual(Object.keys(body.data.user).sort(), ["id", "name", "email", "role", "accountStatus", "verificationStatus", "volunteerAvailable"].sort());
     assert.equal(body.data.user.name, "Fictional Student");
     assert.equal(body.data.user.email, "student@example.invalid");
     assert.equal(body.data.user.role, "USER");

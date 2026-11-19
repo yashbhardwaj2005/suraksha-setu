@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import { register, login, me, logout, requestVolunteerVerification, listVolunteerApplications, reviewVolunteer } from "../controllers/auth.controller.js";
+import { register, login, me, logout, requestVolunteerVerification, listVolunteerApplications, reviewVolunteer, switchMode } from "../controllers/auth.controller.js";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import registrationGuard from "../middlewares/registrationGuard.js";
 import { createCsrfToken, requireCsrf } from "../middlewares/csrf.js";
@@ -14,6 +14,7 @@ authRouter.post("/login", registrationGuard, loginLimiter, login);
 authRouter.get("/me", requireAuth, me);
 authRouter.get("/csrf", requireAuth, createCsrfToken);
 authRouter.post("/logout", requireAuth, requireCsrf, logout);
+authRouter.patch("/mode", requireAuth, requireCsrf, switchMode);
 authRouter.post("/volunteer-verification", requireAuth, requireCsrf, requestVolunteerVerification);
 authRouter.get("/volunteer-applications", requireAuth, requireRole("ADMIN"), listVolunteerApplications);
 authRouter.patch("/volunteer-applications/:userId", requireAuth, requireRole("ADMIN"), requireCsrf, reviewVolunteer);

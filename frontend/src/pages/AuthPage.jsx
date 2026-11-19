@@ -14,7 +14,7 @@ function AuthPage({ mode }) {
   const { user: signedInUser, refreshSession } = useSession();
   const requestedReturn = location.state?.returnTo;
   const returnTo = typeof requestedReturn === 'string' && requestedReturn.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : '/dashboard';
-  const [values, setValues] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'USER' });
+  const [values, setValues] = useState({ name: '', email: '', password: '', confirmPassword: '', role: isRegister && new URLSearchParams(location.search).get('role') === 'volunteer' ? 'VOLUNTEER' : 'USER' });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -67,7 +67,7 @@ function AuthPage({ mode }) {
       if (controller.signal.aborted) return;
       let message = 'Account created. You can now sign in with your email and password.';
       if (user.role === 'VOLUNTEER') {
-        message += ' Your volunteer account requires admin approval. Request verification from your dashboard.';
+        message += ' Your volunteer account requires admin approval. Request verification from My account.';
       }
       setFeedback(message);
       setFeedbackType('success');
@@ -104,7 +104,7 @@ function AuthPage({ mode }) {
             <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button>
           </FormField>
           {isRegister && <FormField id="confirmPassword" label="Confirm password" type={showPassword ? 'text' : 'password'} value={values.confirmPassword} onChange={handleChange} onBlur={handleBlur} autoComplete="new-password" required error={errors.confirmPassword} />}
-          {isRegister && <fieldset className="role-fieldset"><legend>I want to join as a</legend><div className="role-options"><label className={values.role === 'USER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="USER" checked={values.role === 'USER'} onChange={handleChange} /><span>Community member</span></label><label className={values.role === 'VOLUNTEER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="VOLUNTEER" checked={values.role === 'VOLUNTEER'} onChange={handleChange} /><span>Volunteer</span></label></div>{errors.role && <p className="field-error">{errors.role}</p>}<p className="field-hint">Volunteer status requires admin review. Selecting this role does not grant responder access.</p></fieldset>}
+          {isRegister && <fieldset className="role-fieldset"><legend>I want to join as a</legend><div className="role-options"><label className={values.role === 'USER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="USER" checked={values.role === 'USER'} onChange={handleChange} /><span>Community member</span></label><label className={values.role === 'VOLUNTEER' ? 'role-option selected' : 'role-option'}><input type="radio" name="role" value="VOLUNTEER" checked={values.role === 'VOLUNTEER'} onChange={handleChange} /><span>Volunteer</span></label></div>{errors.role && <p className="field-error">{errors.role}</p>}<p className="field-hint">You can switch modes later. Responding as a volunteer requires admin approval.</p></fieldset>}
           <button type="submit" className="button button-primary auth-submit">{isRegister ? isSubmitting ? 'Creating account…' : 'Create account' : isSubmitting ? 'Signing in…' : 'Sign in'}<Icon name="arrow" size={16} /></button>
           </fieldset>
           <div className={'form-feedback form-feedback-' + feedbackType} role="status" aria-live="polite">{feedback && <p>{feedback}</p>}</div>

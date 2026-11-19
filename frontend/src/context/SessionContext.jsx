@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getCurrentUser, prepareCsrf, logoutAccount } from '../services/auth.service.js';
 import { api } from '../services/api.js';
+import { disablePush } from '../services/notifications.js';
 
 const SessionContext = createContext(null);
 
@@ -46,6 +47,7 @@ function SessionProvider({ children }) {
 
   async function signOut() {
     await prepareCsrf();
+    try { await disablePush(); } catch { /* Logout still revokes server-side device subscriptions. */ }
     await logoutAccount();
     delete api.defaults.headers.common['X-CSRF-Token'];
     setUser(null);
