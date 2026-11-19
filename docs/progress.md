@@ -2,6 +2,58 @@
 
 Updated: 2026-11-19 (Asia/Calcutta).
 
+## User-directed practical rebuild (2026-11-19)
+
+The student requested a simpler practical rebuild, removal of developer pages,
+and a working contact/location-sharing flow. They explicitly selected phone
+SMS/WhatsApp composition with user-confirmed Send and no paid provider. This
+direct delegation covers the contact-consent and SOS-sharing work below; it does
+not authorize automatic paid messaging, volunteer matching or background GPS.
+Earlier phase/proposal statements below are historical where superseded here.
+
+Built on redesign/sos-first while the prior production deployment remained live.
+The product now has Safety home, Trusted contacts and My account. Architecture,
+setup and build-workspace routes/navigation are removed. Added a responsive
+SOS-first design, shared session handling, a five-second cancellable countdown,
+explicit location/error states, phone links and clear message-composition steps.
+
+Contacts accept single-use, 24-hour invitations from an authenticated account.
+Only invitation hashes are stored; raw tokens travel in URL fragments and are
+removed from the address bar. Acceptance is consent via an invitation, not a
+claim of independently verified phone ownership. The owner must send the invite
+to the intended person. Recipients can revoke consent from My account.
+
+SOS snapshots connected recipients, exposes no coordinates in listings/messages,
+and grants location access only to authenticated snapshot recipients with current
+consent. Links expire after one hour; explicit owner location updates replace the
+last point and renew the window. Ending SOS removes the stored exact point and
+denies subsequent access. Contact deletion/revocation also denies access. Maps
+load only inside authorized views; stale times and GPS accuracy are displayed.
+
+Sharing uses SMS/WhatsApp draft links and copy fallback. The user must confirm
+Send in their messaging app. No delivery is claimed, no provider is activated,
+and SOS never automatically contacts police. Native messaging rates can apply.
+React Leaflet/Leaflet support the private map. A compatible follow-redirects
+security patch was applied; npm reports no vulnerabilities in the frontend.
+
+Checks: 57 existing offline backend tests, seven real Atlas sharing/privacy tests
+in an isolated temporary database, 24 frontend tests including rendered routes
+and message-link safety, and the frontend production build pass. Temporary test
+databases are identity-checked before cleanup. No real messages were sent.
+Browser/device visual interaction, native SMS/WhatsApp handoff and real GPS have
+not been exercised; no continuous/background tracking or delivery guarantee is
+claimed.
+
+Final release: deployed the backward-compatible API first and verified the new
+flow through the existing production frontend proxy before replacing the UI.
+Three fictional accounts exercised real signup/login/CSRF, invitation inspection
+and acceptance, replay denial, stranger/guest denial, recipient viewing, duplicate
+SOS rejection, consent revocation, location update, cancellation/coordinate removal
+and logout. Only their test records were removed; no messages were opened or sent.
+Both deployments are ready on the original domains. The redesigned live bundle,
+direct public/protected page URLs, health and anonymous sharing denial pass.
+The old UI remained available throughout development and API verification.
+
 ## Vercel deployment repair (2026-11-19)
 
 The student requested direct diagnosis and fixes for the existing deployments.

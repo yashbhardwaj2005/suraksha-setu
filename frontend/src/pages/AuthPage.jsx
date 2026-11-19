@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import FormField from '../components/FormField.jsx';
 import Icon from '../components/Icon.jsx';
 import { Badge } from '../components/ui.jsx';
 import { validateAuthForm } from '../utils/authValidation.js';
 import { registerAccount, loginAccount, getRegistrationError, getLoginError } from '../services/auth.service.js';
+import { useSession } from '../context/SessionContext.jsx';
 
 function AuthPage({ mode }) {
   const isRegister = mode === 'register';
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user: signedInUser, refreshSession } = useSession();
+  const requestedReturn = location.state?.returnTo;
+  const returnTo = typeof requestedReturn === 'string' && requestedReturn.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : '/dashboard';
   const [values, setValues] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'USER' });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +59,8 @@ function AuthPage({ mode }) {
     try {
       if (!isRegister) {
         await loginAccount(values, controller.signal);
-        if (!controller.signal.aborted) navigate('/dashboard');
+        await refreshSession(controller.signal);
+        if (!controller.signal.aborted) navigate(returnTo, { replace: true });
         return;
       }
       const user = await registerAccount(values, controller.signal);
@@ -75,20 +81,21 @@ function AuthPage({ mode }) {
     }
   }
 
+  if (signedInUser) return <Navigate to={returnTo} replace />;
   return <div className="page-content auth-page">
     <div className="auth-layout">
       <div className="auth-story">
-        <p className="eyebrow">A COMMUNITY BUILT ON TRUST</p>
-        <h1>{isRegister ? 'A safer community starts with people.' : 'Welcome back to your community.'}</h1>
-        <p>{isRegister ? 'Start as a community member or apply to become a volunteer. Every role has clear boundaries, and trust is earned through review.' : 'Sign-in will give you access to the tools for your role. Your identity and permissions will be checked by the backend.'}</p>
-        <div className="auth-promise"><span className="icon-box"><Icon name="shield" /></span><div><strong>Verification means more than an email.</strong><p>Volunteers require administrator approval before responding to emergencies.</p></div></div>
+        <p className="eyebrow">YOUR PEOPLE. WITHIN REACH.</p>
+        <h1>{isRegister ? 'Build your circle. Feel more connected.' : 'Good to have you back.'}</h1>
+        <p>{isRegister ? 'Choose the people you trust, connect your contacts, and keep your safety tools in one simple place.' : 'Sign in to your safety space. Your contacts and shared alerts are waiting here.'}</p>
+        <div className="auth-promise"><span className="icon-box"><Icon name="shield" /></span><div><strong>Your circle is yours to choose.</strong><p>Invite people you know. They accept before receiving access to your shared alerts.</p></div></div>
         <div className="auth-promise"><span className="icon-box"><Icon name="lock" /></span><div><strong>Your location stays permission-based.</strong><p>Account creation never starts location tracking.</p></div></div>
       </div>
       <section className="card auth-card" aria-labelledby="auth-title">
         <Badge tone="teal">{isRegister ? 'ACCOUNT SETUP' : 'SIGN IN'}</Badge>
         <h2 id="auth-title">{isRegister ? 'Create your account' : 'Sign in'}</h2>
         <p className="auth-intro">{isRegister ? 'A few details to get started.' : 'Use your registered email address.'}</p>
-        <div className="auth-preview-note"><Icon name="info" size={17} /><p>{isRegister ? 'Registration creates an account on the connected backend. It does not sign you in or approve a volunteer.' : 'Sign in securely to access your dashboard.'}</p></div>
+        <div className="auth-preview-note"><Icon name="info" size={17} /><p>{isRegister ? 'Create your account, then sign in to set up your trusted circle.' : 'Your contacts and shared locations are private to your account.'}</p></div>
         <form method="post" noValidate onSubmit={handleSubmit} aria-busy={isSubmitting}>
           <fieldset className="auth-fields" disabled={isSubmitting}>
           {isRegister && <FormField id="name" label="Full name" value={values.name} onChange={handleChange} onBlur={handleBlur} autoComplete="name" maxLength={80} required error={errors.name} />}
@@ -102,7 +109,7 @@ function AuthPage({ mode }) {
           </fieldset>
           <div className={'form-feedback form-feedback-' + feedbackType} role="status" aria-live="polite">{feedback && <p>{feedback}</p>}</div>
         </form>
-        <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Community Safety?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create account'}</Link></p>
+        <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to SurakshaSetu?'} <Link state={{ returnTo }} to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create account'}</Link></p>
       </section>
     </div>
     <p className="auth-emergency-note">Need emergency services now? <a href="tel:112">Call 112</a>. This academic prototype is not an emergency-response service.</p>

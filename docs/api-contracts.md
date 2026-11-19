@@ -1,5 +1,47 @@
 # API contracts: implemented and proposed
 
+## Current contact and SOS sharing contracts (2026-11-19)
+
+The student directly requested the practical rebuild and selected manual
+SMS/WhatsApp composition. All routes below require an active authenticated
+session. Mutations additionally require CSRF and the configured Origin. JSON
+errors use the existing envelope; responses use Cache-Control: no-store.
+
+- POST /api/v1/contacts/:contactId/invite: owner-only; returns a one-time token
+  and 24-hour expiry. Reissue invalidates the previous token. Only its hash is
+  stored. The frontend puts it in a URL fragment, never the request path/query.
+- POST /api/v1/contacts/invitations/inspect: {token}; valid recipients may see
+  inviter name/expiry. No phone, account details or locations are revealed.
+- POST /api/v1/contacts/invitations/accept: {token}; atomically binds current
+  recipient account and consent, clears the token; self-accept/replay is rejected.
+- GET /api/v1/contacts/connections: names/IDs of accepted connections only.
+- POST /api/v1/contacts/connections/:contactId/revoke: recipient-only; 204 and
+  immediate denial of subsequent shared-location reads.
+- Existing owner contact create/list/delete remain. Owners cannot inject consent
+  or recipient fields. Deleting a contact ends its location permission.
+- POST /api/v1/sos: valid point and optional nonnegative bounded accuracy; snapshots
+  connected recipient IDs with consent. Duplicate open SOS remains 409.
+- GET /api/v1/sos/shared: current recipient's active, unexpired alert summaries;
+  never includes coordinates.
+- GET /api/v1/sos/:sosId/shared: requires snapshot membership, current consent,
+  active owner/account, open SOS and unexpired sharing. Unauthorized is 404;
+  authorized ended/expired is 410. Success includes owner name and latest point,
+  accuracy and timestamps. ADMIN alone does not grant access.
+- PATCH /api/v1/sos/:sosId/location: owner-only, replaces the latest point and
+  renews the one-hour sharing window. No location history is collected.
+- PATCH /api/v1/sos/:sosId/cancel: owner-only, closes SOS and removes exact point.
+
+No server endpoint sends an SMS or WhatsApp message. The frontend composes a
+protected alert URL with no coordinates and opens the chosen messaging app;
+the user confirms Send. Opening/copying is not reported as sent or delivered.
+Invitation acceptance is not independently verified phone ownership.
+
+The new contracts were verified against real production HTTP routes using three
+temporary fictional accounts before the UI switch. Replay, stranger access,
+revocation, duplicate SOS and ended-location denial pass. The test users and
+their records were removed; no native messages were sent. Phone UI handoff and
+GPS permission behavior still require real-device checks.
+
 Deployment update (2026-11-19): submitted login/session/CSRF/logout endpoints
 are implemented despite older proposal text below. POST /api/v1/auth/login
 accepts email/password, returns a safe user with an HttpOnly session cookie;

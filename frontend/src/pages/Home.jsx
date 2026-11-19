@@ -1,35 +1,14 @@
-import { Link } from 'react-router-dom';
+﻿import { Link, Navigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
-import { Badge, Card } from '../components/ui.jsx';
+import { useSession } from '../context/SessionContext.jsx';
 
 function Home() {
-  return <div className="page-content home-page">
-    <div className="home-hero">
-      <div className="home-hero-copy">
-        <Badge tone="teal">FOR CAMPUSES & THEIR COMMUNITIES</Badge>
-        <h1>Your safety.<br /><span>A shared responsibility.</span></h1>
-        <p>A thoughtful space for trusted contacts, verified community volunteers, and permission-based emergency support.</p>
-        <div className="hero-actions"><Link className="button button-primary" to="/register">Create account <Icon name="arrow" size={17} /></Link><Link className="text-link" to="/login">Already have an account?</Link></div>
-        <p className="hero-footnote"><Icon name="lock" size={15} /> Your location should always have a clear purpose and a clear end.</p>
-      </div>
-      <Card className="home-flow-card">
-        <div className="section-heading"><span className="icon-box"><Icon name="shield" size={24} /></span><Badge>Planned SOS flow</Badge></div>
-        <h2>Ask for help.<br />Stay in control.</h2>
-        <ol className="home-steps">
-          <li><span>01</span><div><h3>Choose to share</h3><p>Location permission is requested when you activate an SOS.</p></div></li>
-          <li><span>02</span><div><h3>Connect with a responder</h3><p>Only an assigned, authorized volunteer can receive your exact location.</p></div></li>
-          <li><span>03</span><div><h3>End the sharing</h3><p>Cancelling or resolving an SOS revokes live-location access.</p></div></li>
-        </ol>
-        <p className="planned-note">These emergency features are planned for later phases and are not active yet.</p>
-      </Card>
-    </div>
-    <div className="home-principles">
-      <div><Icon name="shield" /><h2>Trust is reviewed.</h2><p>Volunteer registration does not equal verification. Administrators review applications before approval.</p></div>
-      <div><Icon name="lock" /><h2>Consent comes first.</h2><p>Contacts must consent to alerts. Exact locations are never intended for public access.</p></div>
-      <div><Icon name="phone" /><h2>112 stays within reach.</h2><p>This college prototype cannot guarantee assistance or message delivery. For an emergency in India, call 112.</p></div>
-    </div>
-    <div className="preview-banner"><Icon name="info" /><p><strong>Phase 2 development.</strong> Registration is connected to the backend. Sign-in, role dashboards, and volunteer approvals are still being built. Emergency features remain unavailable.</p></div>
-  </div>;
+  const { user, status } = useSession();
+  if (user) return <Navigate to="/dashboard" replace />;
+  if (status === 'loading') return <div className="page-loading" role="status"><span className="loading-ring" />Getting things ready…</div>;
+  return <div className="landing page-content"><section className="landing-hero"><div className="landing-copy"><span className="eyebrow"><span className="teal-line" />A LITTLE MORE CONNECTED. A LITTLE MORE SECURE.</span><h1>Your people.<br /><span>Within reach.</span></h1><p>When something feels wrong, reach the people you trust. Create an SOS and share your location with your chosen contacts.</p><div className="button-row"><Link to="/register" className="button button-primary button-large">Set up my safety circle</Link><Link to="/login" className="text-link">I already have an account</Link></div><div className="landing-assurance"><Icon name="lock" size={17} /><span>Your location stays private. You decide when to share it.</span></div></div>
+      <div className="product-preview" aria-label="Preview of the safety dashboard"><div className="preview-top"><span className="brand-icon"><Icon name="shield" size={20} /></span><span>Your safety, simplified</span><span className="preview-dots">•••</span></div><div className="preview-content"><p className="eyebrow">ALWAYS WITHIN REACH</p><h2>A little peace of mind.</h2><div className="preview-sos"><span>SOS</span><small>Tap when you need help</small></div><div className="preview-contact"><span className="avatar"><Icon name="people" size={20} /></span><div><strong>Your trusted circle</strong><small>People you choose. Support you know.</small></div><Icon name="check" size={19} /></div></div><div className="floating-note"><span><Icon name="lock" size={18} /></span><div><strong>Shared with your people</strong><small>Never a public location link</small></div></div></div>
+    </section><section className="how-section"><div className="section-heading"><div><p className="eyebrow">SIMPLE BY DESIGN</p><h2>Set it up before you need it.</h2></div><span>No paid messaging service needed.</span></div><div className="how-grid"><article><span className="icon-box"><Icon name="people" /></span><h3>Choose your people</h3><p>Add up to five trusted contacts. Send an invite so they can connect their account.</p></article><article><span className="icon-box red-icon"><Icon name="bell" /></span><h3>Start an SOS</h3><p>A short countdown gives you time to cancel. Allow location to create your alert.</p></article><article><span className="icon-box"><Icon name="message" /></span><h3>Send your message</h3><p>Open SMS or WhatsApp, then confirm Send. Your contacts can sign in to view your last shared location.</p></article></div></section><div className="landing-callout"><Icon name="phone" size={24} /><div><strong>In immediate danger?</strong><p>This app does not contact police. Call 112 for emergency services.</p></div><a href="tel:112" className="button button-secondary">Call 112</a></div></div>;
 }
 
 export default Home;

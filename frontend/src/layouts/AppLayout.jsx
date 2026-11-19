@@ -1,42 +1,39 @@
-import { useEffect, useRef } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+﻿import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
-import { Badge } from '../components/ui.jsx';
+import { useSession } from '../context/SessionContext.jsx';
 
-const navigation = [
-  { to: '/', label: 'Home', icon: 'shield' },
-  { to: '/login', label: 'Sign in', icon: 'lock' },
-  { to: '/register', label: 'Create account', icon: 'globe' },
-  { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
-  { to: '/workspace', label: 'Build workspace', icon: 'grid' },
-  { to: '/setup', label: 'Getting started', icon: 'code' },
-  { to: '/architecture', label: 'Architecture', icon: 'layers' },
-];
+const navigation = [{ to: '/dashboard', label: 'Safety home', icon: 'home' }, { to: '/contacts', label: 'Trusted contacts', icon: 'people' }, { to: '/account', label: 'My account', icon: 'user' }];
 
 function AppLayout() {
   const { pathname } = useLocation();
+  const { user, signOut } = useSession();
+  const navigate = useNavigate();
   const main = useRef(null);
+  const [notice, setNotice] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
   useEffect(() => {
     window.scrollTo(0, 0);
     main.current?.focus({ preventScroll: true });
-    const page = navigation.find((item) => item.to === pathname)?.label || 'Page not found';
-    document.title = `${page} | Community Safety`;
+    document.title = (navigation.find(item => item.to === pathname)?.label || 'Your people. Within reach.') + ' | SurakshaSetu';
+    setNotice('');
   }, [pathname]);
-
-  return <div className="app-shell">
+  async function handleSignOut() {
+    setSigningOut(true);
+    try { await signOut(); navigate('/'); }
+    catch { setNotice('Could not sign out. Check your connection and retry.'); }
+    finally { setSigningOut(false); }
+  }
+  const brand = <Link className="brand" to={user ? '/dashboard' : '/'} aria-label="SurakshaSetu home"><span className="brand-icon"><Icon name="shield" size={25} /></span><span>Suraksha<span>Setu</span><small>YOUR PEOPLE. WITHIN REACH.</small></span></Link>;
+  return <div className={'app-shell ' + (user ? 'signed-in' : 'public-shell')}>
     <a className="skip-link" href="#main-content">Skip to content</a>
-    <aside className="sidebar">
-      <Link className="brand" to="/" aria-label="Community Safety home"><span className="brand-icon"><Icon name="shield" size={27} /></span><span>community<span className="brand-second">safety<span className="brand-dot">.</span></span></span></Link>
-      <p className="nav-caption">COMMUNITY SAFETY</p>
-      <nav aria-label="Main navigation">{navigation.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><Icon name={item.icon} />{item.label}</NavLink>)}</nav>
-      <div className="sidebar-note"><Icon name="shield" /><strong>Built with care.</strong><p>Privacy, consent, and clear communication at every step.</p></div>
-      <div className="sidebar-foot"><span className="small-dot" /> Academic prototype</div>
-    </aside>
-    <div className="main-shell">
-      <header className="topbar"><span className="breadcrumb">Community Safety <span>/</span> Phase 02</span><div className="topbar-actions"><Badge>Development</Badge><a className="emergency-link" href="tel:112"><Icon name="phone" size={16} /><span>Call 112<span className="emergency-long"> · Emergency services</span></span></a></div></header>
+    {user && <aside className="sidebar">{brand}<div className="sidebar-label">YOUR SAFETY SPACE</div><nav aria-label="Main navigation">{navigation.map(item => <NavLink key={item.to} to={item.to} className={({ isActive }) => 'nav-link ' + (isActive ? 'active' : '')}><Icon name={item.icon} /><span>{item.label}</span></NavLink>)}</nav><div className="sidebar-emergency"><span className="icon-box"><Icon name="phone" /></span><h2>Need urgent help?</h2><p>For emergency services in India, call 112.</p><a href="tel:112" className="button button-secondary">Call 112</a></div><div className="sidebar-profile"><span className="avatar">{user.name.slice(0, 1).toUpperCase()}</span><div><strong>{user.name}</strong><span>{user.role === 'VOLUNTEER' ? 'Community volunteer' : 'Community member'}</span></div><button className="icon-button" aria-label="Sign out" onClick={handleSignOut} disabled={signingOut}><Icon name="logout" size={18} /></button></div></aside>}
+    <div className="main-shell"><header className="topbar">{user ? <div className="topbar-heading"><Icon name="shield" size={17} /><span className="desktop-heading">Your private safety space</span><span className="mobile-heading">SurakshaSetu</span></div> : brand}<div className="topbar-actions"><a className="emergency-link" href="tel:112"><Icon name="phone" size={17} />Call 112</a>{!user && <Link className="button button-secondary" to="/login">Sign in</Link>}{user && <Link className="avatar mobile-avatar" aria-label="My account" to="/account">{user.name.slice(0, 1).toUpperCase()}</Link>}</div></header>
+      {notice && <p className="notice notice-error" role="alert">{notice}</p>}
       <main id="main-content" ref={main} tabIndex={-1}><Outlet /></main>
-      <footer className="footer"><span>Community-Driven Women Safety</span><span>College project · Built step by step</span></footer>
+      <footer className="footer"><span><Icon name="shield" size={14} />SurakshaSetu · Academic prototype</span><span>Emergency services: <a href="tel:112">112</a></span></footer>
     </div>
+    {user && <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(item => <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? 'active' : ''}><Icon name={item.icon} size={21} /><span>{item.label === 'Trusted contacts' ? 'Contacts' : item.label === 'Safety home' ? 'Home' : 'Account'}</span></NavLink>)}</nav>}
   </div>;
 }
 

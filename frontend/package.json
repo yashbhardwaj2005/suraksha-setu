@@ -7,12 +7,14 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/auth-validation.test.js tests/registration-service.test.js"
+    "test": "node --test tests/auth-validation.test.js tests/registration-service.test.js tests/sharing.test.js tests/product-ui.test.js"
   },
   "dependencies": {
     "axios": "^1.20.0",
+    "leaflet": "^1.9.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {

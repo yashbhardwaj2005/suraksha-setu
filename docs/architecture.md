@@ -4,6 +4,42 @@ Status: Phase 1 foundation, Phase 2 User model and public registration are
 implemented. Login/session authentication and future models remain proposed.
 Date: 2026-10-21.
 
+## Practical rebuild: latest architecture (2026-11-19)
+
+The student directly requested a rebuild around trusted contacts and SOS and
+chose manual SMS/WhatsApp composition. The user-facing app has three authenticated
+sections: safety home, contacts and account. Developer documentation remains in
+the repository and is not routed or linked from the product. The existing React,
+Express, MongoDB and Vercel topology is retained.
+
+Contact consent links contain random, single-use tokens in URL fragments, with
+only SHA-256 hashes and 24-hour expiries persisted. Signed-in recipients inspect
+and accept invitations, binding consent to their account. This confirms invite
+possession and agreement; it does not independently verify the phone number.
+The owner chooses the intended recipient when sending the invite.
+
+An SOS records the last needed point, server timestamp, one-hour sharing expiry
+and recipient snapshot. Every shared read checks session/account state, snapshot
+membership, current contact consent, owner state, active status and expiry.
+Listings and outgoing message text omit coordinates. Cancellation removes exact
+coordinates; revocation/deletion denies further reads. Existing historical data
+is not bulk-migrated or deleted by this change. Protected map views use Leaflet
+and OSM; permission is rechecked every 15 seconds while the recipient page is
+visible and the map is cleared on access failure or when the page is hidden.
+
+The owner explicitly refreshes location, replacing the previous point and
+renewing the one-hour window. There is no background GPS/socket tracking. Native
+SMS/WhatsApp draft links require Send confirmation; neither opening nor copying a
+message proves delivery. No paid provider or automatic notifications are wired.
+Server responses are no-store in both Express and the Vercel entry. A shared
+frontend session handles expiry; client guards supplement server authorization.
+
+Release ordering preserves the working site: validate on a separate branch,
+deploy the additive compatible API, verify it through the existing frontend
+proxy, then switch the completed UI. Production HTTP checks passed with fictional
+accounts that were cleaned up. Real-device/native messaging and GPS interaction
+remain verification limits; the application keeps them user-confirmed.
+
 Deployment update (2026-11-19): the existing submitted application now includes
 login/JWT sessions and CSRF. Earlier descriptions of these as proposed are
 historical. Backend Vercel builds only api/index.js and routes requests there,
